@@ -1,0 +1,991 @@
+openapi: 3.0.3
+
+info:
+  title: Food Expenses IS API
+  version: 1.0.0
+  description: |
+    REST API інформаційної системи обліку витрат на харчування.
+
+    Контракт спроєктовано за затвердженою специфікацією `spec/srs.tex` (версія 1.0).
+    Кожна операція має посилання на ID вимоги в полі `x-requirements`.
+    Реалізація виконується в лабораторній роботі №5 за підходом TDD.
+
+    Терміни вживаються у значенні з `spec/glossary.md`: профіль, покупка,
+    ціна за одиницю, кількість, вартість покупки, категорія, підсумок за період.
+  contact:
+    name: Майстренко Ілля, група КН-32
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Локальний запуск
+  - url: http://127.0.0.1:4010
+    description: Mock API (Prism)
+
+tags:
+  - name: profiles
+    description: Профілі користувачів (REQ-F-001..004)
+  - name: categories
+    description: Категорії витрат (REQ-F-020..025)
+  - name: purchases
+    description: Покупки (REQ-F-005..019, REQ-F-035)
+  - name: summary
+    description: Підсумки та аналітика (REQ-F-026..033)
+  - name: system
+    description: Службові операції (REQ-F-036)
+
+paths:
+
+  /profiles:
+    get:
+      tags: [profiles]
+      summary: Список профілів
+      operationId: listProfiles
+      x-requirements: [REQ-F-002]
+      responses:
+        '200':
+          description: Список профілів
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Profile' }
+              examples:
+                twoProfiles:
+                  summary: Два профілі
+                  value:
+                    items:
+                      - id: 018f2b10-0000-7000-8000-000000000001
+                        name: Ілля
+                        createdAt: '2026-10-01T09:15:00+03:00'
+                      - id: 018f2b10-0000-7000-8000-000000000002
+                        name: Гість
+                        createdAt: '2026-10-03T18:40:00+03:00'
+                empty:
+                  summary: Профілів ще немає (REQ-F-004)
+                  value:
+                    items: []
+    post:
+      tags: [profiles]
+      summary: Створити профіль
+      operationId: createProfile
+      x-requirements: [REQ-F-001, REQ-F-004]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileCreate' }
+            examples:
+              valid:
+                value: { name: Ілля }
+      responses:
+        '201':
+          description: Профіль створено
+          headers:
+            Location:
+              description: URI створеного профілю
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+              examples:
+                created:
+                  value:
+                    id: 018f2b10-0000-7000-8000-000000000001
+                    name: Ілля
+                    createdAt: '2026-10-01T09:15:00+03:00'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /profiles/{profileId}:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [profiles]
+      summary: Отримати профіль
+      operationId: getProfile
+      x-requirements: [REQ-F-002]
+      responses:
+        '200':
+          description: Профіль
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+              examples:
+                profile:
+                  value:
+                    id: 018f2b10-0000-7000-8000-000000000001
+                    name: Ілля
+                    createdAt: '2026-10-01T09:15:00+03:00'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/categories:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [categories]
+      summary: Категорії профілю
+      operationId: listCategories
+      x-requirements: [REQ-F-020, REQ-F-003]
+      responses:
+        '200':
+          description: Список категорій активного профілю
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Category' }
+              examples:
+                baseCategories:
+                  summary: Базові категорії після створення профілю
+                  value:
+                    items:
+                      - { id: 11111111-0000-4000-8000-000000000001, name: Продукти, system: false, purchaseCount: 12 }
+                      - { id: 11111111-0000-4000-8000-000000000002, name: Ресторан, system: false, purchaseCount: 3 }
+                      - { id: 11111111-0000-4000-8000-000000000003, name: Доставка, system: false, purchaseCount: 1 }
+                      - { id: 11111111-0000-4000-8000-000000000004, name: Напої, system: false, purchaseCount: 3 }
+                      - { id: 11111111-0000-4000-8000-000000000005, name: Інше, system: true, purchaseCount: 0 }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [categories]
+      summary: Створити власну категорію
+      operationId: createCategory
+      x-requirements: [REQ-F-021]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryCreate' }
+            examples:
+              valid:
+                value: { name: Перекуси }
+      responses:
+        '201':
+          description: Категорію створено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Category' }
+              examples:
+                created:
+                  value: { id: 11111111-0000-4000-8000-000000000006, name: Перекуси, system: false, purchaseCount: 0 }
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+      - $ref: '#/components/parameters/CategoryId'
+    patch:
+      tags: [categories]
+      summary: Перейменувати категорію
+      operationId: renameCategory
+      x-requirements: [REQ-F-022, REQ-F-025]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryUpdate' }
+            examples:
+              rename:
+                value: { name: Кафе }
+      responses:
+        '200':
+          description: Категорію перейменовано, покупки зберігають зв'язок
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Category' }
+              examples:
+                renamed:
+                  value: { id: 11111111-0000-4000-8000-000000000002, name: Кафе, system: false, purchaseCount: 3 }
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+    delete:
+      tags: [categories]
+      summary: Видалити категорію
+      description: |
+        Непорожню категорію без параметра `confirm=true` видалити не можна:
+        повертається 409 з кількістю пов'язаних покупок (REQ-F-023).
+        З `confirm=true` покупки переносяться до службової категорії «Інше» (REQ-F-024).
+        Службову категорію «Інше» видалити не можна за жодних умов (REQ-F-025).
+      operationId: deleteCategory
+      x-requirements: [REQ-F-023, REQ-F-024, REQ-F-025]
+      parameters:
+        - name: confirm
+          in: query
+          required: false
+          description: Підтвердження перенесення покупок до категорії «Інше»
+          schema: { type: boolean, default: false }
+      responses:
+        '204':
+          description: Категорію видалено
+        '409':
+          description: Категорія непорожня або службова
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                notEmpty:
+                  summary: Непорожня категорія без confirm (REQ-F-023)
+                  value:
+                    error:
+                      code: CATEGORY_NOT_EMPTY
+                      message: 'Категорія містить 3 покупки. Підтвердіть перенесення до категорії «Інше».'
+                      requirement: REQ-F-023
+                      details:
+                        - field: purchaseCount
+                          issue: '3'
+                    traceId: 7f3a1c2e-0000-4000-8000-00000000aa01
+                systemCategory:
+                  summary: Спроба видалити «Інше» (REQ-F-025)
+                  value:
+                    error:
+                      code: CATEGORY_IS_SYSTEM
+                      message: 'Категорія «Інше» є службовою, її не можна видалити або перейменувати.'
+                      requirement: REQ-F-025
+                      details: []
+                    traceId: 7f3a1c2e-0000-4000-8000-00000000aa02
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/purchases:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [purchases]
+      summary: Список покупок профілю
+      description: Упорядкування за датою й часом від новіших до старіших (REQ-F-012).
+      operationId: listPurchases
+      x-requirements: [REQ-F-012, REQ-F-003]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date }, description: Початок періоду включно }
+        - { name: to, in: query, schema: { type: string, format: date }, description: Кінець періоду включно }
+        - { name: categoryId, in: query, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        '200':
+          description: Сторінка списку покупок
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Purchase' }
+                  total: { type: integer, example: 2 }
+              examples:
+                twoPurchases:
+                  value:
+                    total: 2
+                    items:
+                      - id: 22222222-0000-4000-8000-000000000002
+                        name: Яблука
+                        categoryId: 11111111-0000-4000-8000-000000000001
+                        categoryName: Продукти
+                        unitPrice: '80.00'
+                        quantity: '0.7'
+                        amount: '56.00'
+                        occurredAt: '2026-10-05T18:12:00+03:00'
+                      - id: 22222222-0000-4000-8000-000000000001
+                        name: Хліб
+                        categoryId: 11111111-0000-4000-8000-000000000001
+                        categoryName: Продукти
+                        unitPrice: '25.50'
+                        quantity: '1'
+                        amount: '25.50'
+                        occurredAt: '2026-10-05T09:30:00+03:00'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [purchases]
+      summary: Додати покупку
+      description: |
+        Дата й час проставляються сервером (REQ-F-007).
+        Вартість обчислюється як ціна за одиницю, помножена на кількість,
+        із заокругленням до копійок (REQ-F-006).
+        Покупки з однаковими назвою, категорією та датою дозволені (REQ-F-011).
+      operationId: createPurchase
+      x-requirements: [REQ-F-005, REQ-F-006, REQ-F-007, REQ-F-011, REQ-F-013, REQ-F-014, REQ-F-015, REQ-F-017, REQ-F-018, REQ-F-019]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchaseCreate' }
+            examples:
+              weighted:
+                summary: Ваговий товар
+                value: { name: Яблука, categoryId: 11111111-0000-4000-8000-000000000001, unitPrice: '80.00', quantity: '0.7' }
+      responses:
+        '201':
+          description: Покупку створено
+          headers:
+            Location:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Purchase' }
+              examples:
+                created:
+                  value:
+                    id: 22222222-0000-4000-8000-000000000002
+                    name: Яблука
+                    categoryId: 11111111-0000-4000-8000-000000000001
+                    categoryName: Продукти
+                    unitPrice: '80.00'
+                    quantity: '0.7'
+                    amount: '56.00'
+                    occurredAt: '2026-10-05T18:12:00+03:00'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/purchases/{purchaseId}:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+      - $ref: '#/components/parameters/PurchaseId'
+    get:
+      tags: [purchases]
+      summary: Одна покупка
+      operationId: getPurchase
+      x-requirements: [REQ-F-012, REQ-F-003]
+      responses:
+        '200':
+          description: Покупка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Purchase' }
+              examples:
+                purchase:
+                  value:
+                    id: 22222222-0000-4000-8000-000000000002
+                    name: Яблука
+                    categoryId: 11111111-0000-4000-8000-000000000001
+                    categoryName: Продукти
+                    unitPrice: '80.00'
+                    quantity: '0.7'
+                    amount: '56.00'
+                    occurredAt: '2026-10-05T18:12:00+03:00'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [purchases]
+      summary: Змінити покупку
+      description: |
+        Дозволено змінювати будь-яке поле, зокрема дату й час (REQ-F-008).
+        Після зміни підсумки за відповідні періоди перераховуються (REQ-F-009).
+        Дата й час у майбутньому відхиляються (REQ-F-016).
+      operationId: updatePurchase
+      x-requirements: [REQ-F-008, REQ-F-009, REQ-F-013, REQ-F-014, REQ-F-015, REQ-F-016, REQ-F-017, REQ-F-018]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchaseUpdate' }
+            examples:
+              moveToAnotherDay:
+                summary: Перенесення покупки на попередній день
+                value: { occurredAt: '2026-10-04T19:00:00+03:00' }
+      responses:
+        '200':
+          description: Покупку змінено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Purchase' }
+              examples:
+                updated:
+                  value:
+                    id: 22222222-0000-4000-8000-000000000002
+                    name: Яблука
+                    categoryId: 11111111-0000-4000-8000-000000000001
+                    categoryName: Продукти
+                    unitPrice: '80.00'
+                    quantity: '0.7'
+                    amount: '56.00'
+                    occurredAt: '2026-10-04T19:00:00+03:00'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [purchases]
+      summary: Видалити покупку
+      operationId: deletePurchase
+      x-requirements: [REQ-F-010, REQ-F-009]
+      responses:
+        '204':
+          description: Покупку видалено, підсумки перераховано
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/purchases/export:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [purchases]
+      summary: Експорт покупок у CSV
+      description: |
+        Колонки: назва, категорія, ціна за одиницю, кількість, вартість, дата й час.
+        Роздільник — кома, кодування UTF-8 (REQ-I-003).
+      operationId: exportPurchases
+      x-requirements: [REQ-F-035, REQ-I-003]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Файл CSV
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: attachment; filename="purchases-2026-10.csv"
+          content:
+            text/csv:
+              schema: { type: string }
+              example: |
+                name,category,unitPrice,quantity,amount,occurredAt
+                Яблука,Продукти,80.00,0.7,56.00,2026-10-05T18:12:00+03:00
+                Хліб,Продукти,25.50,1,25.50,2026-10-05T09:30:00+03:00
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/summary:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [summary]
+      summary: Підсумок витрат за період
+      description: |
+        `period=day` — календарна доба, `week` — з понеділка по неділю,
+        `month` — з 1-го по останнє число, `range` — довільний діапазон включно з межами.
+        Для порожнього періоду повертається 0.00 (REQ-F-033).
+      operationId: getSummary
+      x-requirements: [REQ-F-026, REQ-F-027, REQ-F-028, REQ-F-029, REQ-F-033]
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema: { type: string, enum: [day, week, month, range] }
+        - { name: date, in: query, schema: { type: string, format: date }, description: 'Дата всередині періоду для day, week, month' }
+        - { name: from, in: query, schema: { type: string, format: date }, description: Початок для period=range }
+        - { name: to, in: query, schema: { type: string, format: date }, description: Кінець для period=range }
+      responses:
+        '200':
+          description: Підсумок за період
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Summary' }
+              examples:
+                week:
+                  summary: Календарний тиждень (REQ-F-027)
+                  value:
+                    period: week
+                    from: '2026-10-05'
+                    to: '2026-10-11'
+                    total: '150.00'
+                    currency: UAH
+                    purchaseCount: 2
+                emptyMonth:
+                  summary: Місяць без покупок (REQ-F-033)
+                  value:
+                    period: month
+                    from: '2026-03-01'
+                    to: '2026-03-31'
+                    total: '0.00'
+                    currency: UAH
+                    purchaseCount: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/summary/categories:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [summary]
+      summary: Розбивка витрат за категоріями
+      description: Сума часток для непорожнього періоду дорівнює 100% (REQ-F-030).
+      operationId: getCategoryBreakdown
+      x-requirements: [REQ-F-030, REQ-F-033]
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema: { type: string, enum: [day, week, month, range] }
+        - { name: date, in: query, schema: { type: string, format: date } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Розбивка за категоріями
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategoryBreakdown' }
+              examples:
+                october:
+                  value:
+                    period: month
+                    from: '2026-10-01'
+                    to: '2026-10-31'
+                    total: '400.00'
+                    currency: UAH
+                    items:
+                      - { categoryId: 11111111-0000-4000-8000-000000000001, categoryName: Продукти, amount: '300.00', share: 75.0 }
+                      - { categoryId: 11111111-0000-4000-8000-000000000002, categoryName: Ресторан, amount: '100.00', share: 25.0 }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/charts/daily:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [summary]
+      summary: Дані графіка витрат по днях місяця
+      operationId: getDailyChart
+      x-requirements: [REQ-F-031]
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+          example: '2026-10'
+      responses:
+        '200':
+          description: Точки графіка, по одній на кожен день місяця
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChartSeries' }
+              examples:
+                october:
+                  value:
+                    scale: daily
+                    period: '2026-10'
+                    currency: UAH
+                    points:
+                      - { label: '2026-10-01', amount: '0.00' }
+                      - { label: '2026-10-04', amount: '60.00' }
+                      - { label: '2026-10-05', amount: '81.50' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/charts/monthly:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [summary]
+      summary: Дані графіка витрат по місяцях року
+      operationId: getMonthlyChart
+      x-requirements: [REQ-F-032]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema: { type: integer, minimum: 2000, maximum: 2100 }
+          example: 2026
+      responses:
+        '200':
+          description: Точки графіка, по одній на кожен місяць року
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChartSeries' }
+              examples:
+                year2026:
+                  value:
+                    scale: monthly
+                    period: '2026'
+                    currency: UAH
+                    points:
+                      - { label: '2026-09', amount: '2870.00' }
+                      - { label: '2026-10', amount: '400.00' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /backups:
+    post:
+      tags: [system]
+      summary: Створити резервну копію бази даних
+      operationId: createBackup
+      x-requirements: [REQ-F-036]
+      responses:
+        '201':
+          description: Резервну копію створено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Backup' }
+              examples:
+                created:
+                  value:
+                    id: 33333333-0000-4000-8000-000000000001
+                    fileName: backup-2026-10-28T12-00-00.db
+                    sizeBytes: 148480
+                    createdAt: '2026-10-28T12:00:00+02:00'
+        '500':
+          description: Не вдалося створити копію
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                failed:
+                  value:
+                    error:
+                      code: BACKUP_FAILED
+                      message: Не вдалося створити резервну копію бази даних.
+                      requirement: REQ-F-036
+                      details: []
+                    traceId: 7f3a1c2e-0000-4000-8000-00000000bb01
+
+components:
+
+  parameters:
+    ProfileId:
+      name: profileId
+      in: path
+      required: true
+      description: Ідентифікатор активного профілю
+      schema: { type: string, format: uuid }
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PurchaseId:
+      name: purchaseId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+
+    Money:
+      type: string
+      description: Грошова сума в гривнях, рядок із двома знаками після коми (REQ-NF-010)
+      pattern: '^\d+\.\d{2}$'
+      example: '56.00'
+
+    Quantity:
+      type: string
+      description: Кількість, до трьох знаків після коми, більша за нуль (REQ-F-018)
+      pattern: '^\d+(\.\d{1,3})?$'
+      example: '0.7'
+
+    Profile:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 60, example: Ілля }
+        createdAt: { type: string, format: date-time }
+
+    ProfileCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60 }
+
+    Category:
+      type: object
+      required: [id, name, system]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 40 }
+        system:
+          type: boolean
+          description: Службова категорія «Інше» не видаляється і не перейменовується (REQ-F-025)
+        purchaseCount:
+          type: integer
+          minimum: 0
+          description: Кількість покупок у категорії
+
+    CategoryCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+
+    CategoryUpdate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+
+    Purchase:
+      type: object
+      required: [id, name, categoryId, unitPrice, quantity, amount, occurredAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 100, description: 'Обов''язкове поле (REQ-F-015)' }
+        categoryId: { type: string, format: uuid }
+        categoryName: { type: string, readOnly: true }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+        amount:
+          allOf: [{ $ref: '#/components/schemas/Money' }]
+          readOnly: true
+          description: Обчислюється сервером як unitPrice × quantity (REQ-F-006)
+        occurredAt:
+          type: string
+          format: date-time
+          description: Дата й час покупки, не пізніші за поточний момент (REQ-F-007, REQ-F-016)
+
+    PurchaseCreate:
+      type: object
+      required: [name, categoryId, unitPrice, quantity]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        categoryId: { type: string, format: uuid }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+
+    PurchaseUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        categoryId: { type: string, format: uuid }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+        occurredAt: { type: string, format: date-time }
+
+    Summary:
+      type: object
+      required: [period, from, to, total, currency]
+      properties:
+        period: { type: string, enum: [day, week, month, range] }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        total: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, enum: [UAH] }
+        purchaseCount: { type: integer, minimum: 0 }
+
+    CategoryBreakdown:
+      type: object
+      required: [period, from, to, total, items]
+      properties:
+        period: { type: string, enum: [day, week, month, range] }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        total: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, enum: [UAH] }
+        items:
+          type: array
+          items:
+            type: object
+            required: [categoryId, categoryName, amount, share]
+            properties:
+              categoryId: { type: string, format: uuid }
+              categoryName: { type: string }
+              amount: { $ref: '#/components/schemas/Money' }
+              share:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 100
+                description: Частка у відсотках, сума часток дорівнює 100
+
+    ChartSeries:
+      type: object
+      required: [scale, period, points]
+      properties:
+        scale: { type: string, enum: [daily, monthly] }
+        period: { type: string, example: '2026-10' }
+        currency: { type: string, enum: [UAH] }
+        points:
+          type: array
+          items:
+            type: object
+            required: [label, amount]
+            properties:
+              label: { type: string, example: '2026-10-05' }
+              amount: { $ref: '#/components/schemas/Money' }
+
+    Backup:
+      type: object
+      required: [id, fileName, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        fileName: { type: string }
+        sizeBytes: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      description: Єдина модель помилки для всіх операцій API
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Машинний код помилки
+              enum:
+                - VALIDATION_FAILED
+                - PROFILE_NOT_FOUND
+                - CATEGORY_NOT_FOUND
+                - PURCHASE_NOT_FOUND
+                - CATEGORY_NAME_TAKEN
+                - CATEGORY_NOT_EMPTY
+                - CATEGORY_IS_SYSTEM
+                - PROFILE_NAME_TAKEN
+                - INVALID_PERIOD
+                - BACKUP_FAILED
+            message:
+              type: string
+              description: Повідомлення для користувача українською
+            requirement:
+              type: string
+              description: ID вимоги зі специфікації, яку порушено
+              example: REQ-F-013
+            details:
+              type: array
+              items:
+                type: object
+                required: [field, issue]
+                properties:
+                  field: { type: string, example: unitPrice }
+                  issue: { type: string, example: 'must be > 0' }
+        traceId: { type: string, format: uuid }
+
+  responses:
+
+    BadRequest:
+      description: Некоректні параметри запиту
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            invalidPeriod:
+              summary: Невідоме значення period
+              value:
+                error:
+                  code: INVALID_PERIOD
+                  message: 'Невідомий період. Допустимі значення: day, week, month, range.'
+                  requirement: REQ-F-026
+                  details:
+                    - field: period
+                      issue: 'must be one of: day, week, month, range'
+                traceId: 7f3a1c2e-0000-4000-8000-00000000cc01
+
+    NotFound:
+      description: Ресурс не знайдено
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            profileNotFound:
+              value:
+                error:
+                  code: PROFILE_NOT_FOUND
+                  message: Профіль не знайдено.
+                  requirement: REQ-F-003
+                  details: []
+                traceId: 7f3a1c2e-0000-4000-8000-00000000dd01
+            purchaseNotFound:
+              value:
+                error:
+                  code: PURCHASE_NOT_FOUND
+                  message: Покупку не знайдено.
+                  requirement: REQ-F-012
+                  details: []
+                traceId: 7f3a1c2e-0000-4000-8000-00000000dd02
+
+    Conflict:
+      description: Конфлікт стану ресурсу
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            nameTaken:
+              value:
+                error:
+                  code: CATEGORY_NAME_TAKEN
+                  message: Категорія з такою назвою вже існує в цьому профілі.
+                  requirement: REQ-F-021
+                  details:
+                    - field: name
+                      issue: must be unique within profile
+                traceId: 7f3a1c2e-0000-4000-8000-00000000ee01
+
+    UnprocessableEntity:
+      description: Порушено правило предметної області
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            priceNotPositive:
+              summary: Ціна менша або дорівнює нулю (REQ-F-013)
+              value:
+                error:
+                  code: VALIDATION_FAILED
+                  message: Ціна має бути більшою за нуль.
+                  requirement: REQ-F-013
+                  details:
+                    - field: unitPrice
+                      issue: 'must be > 0'
+                traceId: 7f3a1c2e-0000-4000-8000-00000000ff01
+            emptyName:
+              summary: Порожня назва покупки (REQ-F-015)
+              value:
+                error:
+                  code: VALIDATION_FAILED
+                  message: Назва не може бути порожньою.
+                  requirement: REQ-F-015
+                  details:
+                    - field: name
+                      issue: must not be blank
+                traceId: 7f3a1c2e-0000-4000-8000-00000000ff02
+            futureDate:
+              summary: Дата й час у майбутньому (REQ-F-016)
+              value:
+                error:
+                  code: VALIDATION_FAILED
+                  message: Дата не може бути в майбутньому.
+                  requirement: REQ-F-016
+                  details:
+                    - field: occurredAt
+                      issue: must not be in the future
+                traceId: 7f3a1c2e-0000-4000-8000-00000000ff03
+            quantityPrecision:
+              summary: Забагато знаків у кількості (REQ-F-018)
+              value:
+                error:
+                  code: VALIDATION_FAILED
+                  message: Кількість приймається не більш ніж з трьома знаками після коми.
+                  requirement: REQ-F-018
+                  details:
+                    - field: quantity
+                      issue: max 3 decimal places
+                traceId: 7f3a1c2e-0000-4000-8000-00000000ff04
