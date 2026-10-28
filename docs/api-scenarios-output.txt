@@ -1,0 +1,94 @@
+################  ПОЗИТИВНІ СЦЕНАРІЇ  ################
+
+=== P1. Список профілів (REQ-F-002) ===
+{"items":[{"id":"018f2b10-0000-7000-8000-000000000001","name":"Ілля","createdAt":"2026-10-01T09:15:00+03:00"},{"id":"018f2b10-0000-7000-8000-000000000002","name":"Гість","createdAt":"2026-10-03T18:40:00+03:00"}]}
+HTTP 200
+
+=== P2. Створення профілю (REQ-F-001) ===
+{"id":"018f2b10-0000-7000-8000-000000000001","name":"Ілля","createdAt":"2026-10-01T09:15:00+03:00"}
+HTTP 201
+
+=== P3. Базові категорії профілю (REQ-F-020, REQ-F-003) ===
+{"items":[{"id":"11111111-0000-4000-8000-000000000001","name":"Продукти","system":false,"purchaseCount":12},{"id":"11111111-0000-4000-8000-000000000002","name":"Ресторан","system":false,"purchaseCount":3},{"id":"11111111-0000-4000-8000-000000000003","name":"Доставка","system":false,"purchaseCount":1},{"id":"11111111-0000-4000-8000-000000000004","name":"Напої","system":false,"purchaseCount":3},{"id":"11111111-0000-4000-8000-000000000005","name":"Інше","system":true,"purchaseCount":0}]}
+HTTP 200
+
+=== P4. Додавання покупки на вагу: 80.00 x 0.7 = 56.00 (REQ-F-005, REQ-F-006, REQ-F-007) ===
+{"id":"22222222-0000-4000-8000-000000000002","name":"Яблука","categoryId":"11111111-0000-4000-8000-000000000001","categoryName":"Продукти","unitPrice":"80.00","quantity":"0.7","amount":"56.00","occurredAt":"2026-10-05T18:12:00+03:00"}
+HTTP 201
+
+=== P5. Список покупок від новіших до старіших (REQ-F-012) ===
+{"total":2,"items":[{"id":"22222222-0000-4000-8000-000000000002","name":"Яблука","categoryId":"11111111-0000-4000-8000-000000000001","categoryName":"Продукти","unitPrice":"80.00","quantity":"0.7","amount":"56.00","occurredAt":"2026-10-05T18:12:00+03:00"},{"id":"22222222-0000-4000-8000-000000000001","name":"Хліб","categoryId":"11111111-0000-4000-8000-000000000001","categoryName":"Продукти","unitPrice":"25.50","quantity":"1","amount":"25.50","occurredAt":"2026-10-05T09:30:00+03:00"}]}
+HTTP 200
+
+=== P6. Підсумок за календарний тиждень: 100.00 + 50.00 = 150.00 (REQ-F-027) ===
+{"period":"week","from":"2026-10-05","to":"2026-10-11","total":"150.00","currency":"UAH","purchaseCount":2}
+HTTP 200
+
+=== P7. Порожній місяць повертає 0.00 (REQ-F-033) ===
+{"period":"month","from":"2026-03-01","to":"2026-03-31","total":"0.00","currency":"UAH","purchaseCount":0}
+HTTP 200
+
+=== P8. Розбивка за категоріями, сума часток 100% (REQ-F-030) ===
+{"period":"month","from":"2026-10-01","to":"2026-10-31","total":"400.00","currency":"UAH","items":[{"categoryId":"11111111-0000-4000-8000-000000000001","categoryName":"Продукти","amount":"300.00","share":75},{"categoryId":"11111111-0000-4000-8000-000000000002","categoryName":"Ресторан","amount":"100.00","share":25}]}
+HTTP 200
+
+=== P9. Дані графіка по днях місяця (REQ-F-031) ===
+{"scale":"daily","period":"2026-10","currency":"UAH","points":[{"label":"2026-10-01","amount":"0.00"},{"label":"2026-10-04","amount":"60.00"},{"label":"2026-10-05","amount":"81.50"}]}
+HTTP 200
+
+=== P10. Перенесення покупки на інший день, перерахунок підсумків (REQ-F-008, REQ-F-009) ===
+{"id":"22222222-0000-4000-8000-000000000002","name":"Яблука","categoryId":"11111111-0000-4000-8000-000000000001","categoryName":"Продукти","unitPrice":"80.00","quantity":"0.7","amount":"56.00","occurredAt":"2026-10-04T19:00:00+03:00"}
+HTTP 200
+
+=== P11. Видалення покупки (REQ-F-010) ===
+
+HTTP 204
+
+=== P12. Експорт у CSV (REQ-F-035, REQ-I-003) ===
+name,category,unitPrice,quantity,amount,occurredAt
+Яблука,Продукти,80.00,0.7,56.00,2026-10-05T18:12:00+03:00
+Хліб,Продукти,25.50,1,25.50,2026-10-05T09:30:00+03:00
+
+HTTP 200
+
+################  НЕГАТИВНІ СЦЕНАРІЇ  ################
+
+=== N1. Ціна дорівнює нулю (REQ-F-013) -> 422 ===
+{"error":{"code":"VALIDATION_FAILED","message":"Ціна має бути більшою за нуль.","requirement":"REQ-F-013","details":[{"field":"unitPrice","issue":"must be > 0"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000ff01"}
+HTTP 422
+
+=== N2. Порожня назва покупки (REQ-F-015) -> 422 ===
+{"error":{"code":"VALIDATION_FAILED","message":"Назва не може бути порожньою.","requirement":"REQ-F-015","details":[{"field":"name","issue":"must not be blank"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000ff02"}
+HTTP 422
+
+=== N3. Дата й час у майбутньому (REQ-F-016) -> 422 ===
+{"error":{"code":"VALIDATION_FAILED","message":"Дата не може бути в майбутньому.","requirement":"REQ-F-016","details":[{"field":"occurredAt","issue":"must not be in the future"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000ff03"}
+HTTP 422
+
+=== N4. Кількість із чотирма знаками після коми (REQ-F-018) -> 422 ===
+{"error":{"code":"VALIDATION_FAILED","message":"Кількість приймається не більш ніж з трьома знаками після коми.","requirement":"REQ-F-018","details":[{"field":"quantity","issue":"max 3 decimal places"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000ff04"}
+HTTP 422
+
+=== N5. Видалення непорожньої категорії без confirm (REQ-F-023) -> 409 ===
+{"error":{"code":"CATEGORY_NOT_EMPTY","message":"Категорія містить 3 покупки. Підтвердіть перенесення до категорії «Інше».","requirement":"REQ-F-023","details":[{"field":"purchaseCount","issue":"3"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000aa01"}
+HTTP 409
+
+=== N6. Видалення службової категорії «Інше» (REQ-F-025) -> 409 ===
+{"error":{"code":"CATEGORY_IS_SYSTEM","message":"Категорія «Інше» є службовою, її не можна видалити або перейменувати.","requirement":"REQ-F-025","details":[]},"traceId":"7f3a1c2e-0000-4000-8000-00000000aa02"}
+HTTP 409
+
+=== N7. Неіснуюча покупка (REQ-F-012) -> 404 ===
+{"error":{"code":"PURCHASE_NOT_FOUND","message":"Покупку не знайдено.","requirement":"REQ-F-012","details":[]},"traceId":"7f3a1c2e-0000-4000-8000-00000000dd02"}
+HTTP 404
+
+=== N8. Неіснуючий профіль, спроба доступу до чужих даних (REQ-F-003) -> 404 ===
+{"error":{"code":"PROFILE_NOT_FOUND","message":"Профіль не знайдено.","requirement":"REQ-F-003","details":[]},"traceId":"7f3a1c2e-0000-4000-8000-00000000dd01"}
+HTTP 404
+
+=== N9. Невідоме значення period (REQ-F-026) -> 400 ===
+{"error":{"code":"INVALID_PERIOD","message":"Невідомий період. Допустимі значення: day, week, month, range.","requirement":"REQ-F-026","details":[{"field":"period","issue":"must be one of: day, week, month, range"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000cc01"}
+HTTP 400
+
+=== N10. Дублікат назви категорії (REQ-F-021) -> 409 ===
+{"error":{"code":"CATEGORY_NAME_TAKEN","message":"Категорія з такою назвою вже існує в цьому профілі.","requirement":"REQ-F-021","details":[{"field":"name","issue":"must be unique within profile"}]},"traceId":"7f3a1c2e-0000-4000-8000-00000000ee01"}
+HTTP 409
