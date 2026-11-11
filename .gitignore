@@ -4,3 +4,13 @@ __pycache__/
 node_modules/
 .env
 Thumbs.db
+
+# Віртуальне середовище та робочі дані застосунку
+.venv/
+venv/
+data/
+.pytest_cache/
+
+# Робочі журнали застосунку; у репозиторії лишаються лише журнали рішень
+logs/app.log
+logs/errors.log
