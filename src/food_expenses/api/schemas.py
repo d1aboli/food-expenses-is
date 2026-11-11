@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from ..models import Category, Profile
+from ..models import Category, Profile, Purchase
+from ..money import format_money, format_quantity
 
 
 class ProfileCreateRequest(BaseModel):
@@ -51,4 +52,42 @@ def category_payload(category: Category, purchase_count: int) -> dict[str, objec
         "name": category.name,
         "system": category.is_system,
         "purchaseCount": purchase_count,
+    }
+
+
+class PurchaseCreateRequest(BaseModel):
+    """Схема `PurchaseCreate` з контракту.
+
+    Поля названі так само, як у контракті, тому тут немає перетворення імен:
+    те, що описано в `openapi.yaml`, те й приймається.
+    """
+
+    name: str
+    categoryId: str
+    unitPrice: str
+    quantity: str
+
+
+class PurchaseUpdateRequest(BaseModel):
+    """Схема `PurchaseUpdate` з контракту: будь-яка підмножина полів (REQ-F-008)."""
+
+    name: str | None = None
+    categoryId: str | None = None
+    unitPrice: str | None = None
+    quantity: str | None = None
+    occurredAt: str | None = None
+
+
+def purchase_payload(purchase: Purchase, category_name: str) -> dict[str, object]:
+    """Схема `Purchase` з контракту."""
+
+    return {
+        "id": purchase.id,
+        "name": purchase.name,
+        "categoryId": purchase.category_id,
+        "categoryName": category_name,
+        "unitPrice": format_money(purchase.unit_price),
+        "quantity": format_quantity(purchase.quantity),
+        "amount": format_money(purchase.amount),
+        "occurredAt": purchase.occurred_at.isoformat(timespec="seconds"),
     }

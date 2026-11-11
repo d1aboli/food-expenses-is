@@ -175,3 +175,49 @@ src/food_expenses/api/app.py                     маршрут підключе
 **Рішення.** Прийнято.
 
 **Прогін після коду.** 41 тест, усі успішні.
+
+## Етап 1. Покупки (FEI-9, FEI-10) і закриття REQ-F-023, REQ-F-024
+
+**Запит людини.** Тести покупок із SRS, критеріїв прийняття та контракту.
+Обчислення грошей винести в окремий модуль і перевіряти без бази й без HTTP.
+
+**Тести.** 37 нових: `tests/test_money.py` (10), `tests/test_purchases.py` (21),
+`tests/test_category_deletion.py` (6).
+
+**Прогін до коду.** 69 тестів, 28 неуспішних. Причини очікувані: немає модуля
+`food_expenses.money` (помилка збирання) і немає операцій `/purchases`.
+Рішення TEST-GATE 3 — **GO**.
+
+**Змінені файли реалізації.**
+
+```
+src/food_expenses/money.py                     новий
+src/food_expenses/timeutils.py                 новий
+src/food_expenses/models.py                    + Purchase
+src/food_expenses/repositories/purchases.py    новий
+src/food_expenses/services/purchases.py        новий
+src/food_expenses/services/categories.py       REQ-F-024: перенесення до «Інше»
+src/food_expenses/api/schemas.py               + PurchaseCreate, PurchaseUpdate, Purchase
+src/food_expenses/api/dependencies.py          + PurchaseService
+src/food_expenses/api/routers/purchases.py     новий
+src/food_expenses/api/app.py                   маршрут підключено
+```
+
+**Перегляд через `git diff`.** Зауваження людини:
+
+- Агент спершу обчислював вартість через `round()`. **Повернуто на
+  доопрацювання:** `round()` у Python заокруглює половину до парного, а SRS
+  вимагає заокруглення вгору. Замінено на `Decimal.quantize` з
+  `ROUND_HALF_UP`; приклад `0,05 × 0,5 = 0,03` закріплений тестом.
+- Поле `amount` агент брав із запиту, якщо воно там є. **Відхилено:** за
+  контрактом `amount` має ознаку `readOnly` і обчислюється сервером. Тепер
+  вартість перераховується при кожній зміні ціни чи кількості й не може бути
+  задана ззовні.
+- Порядок дій при видаленні непорожньої категорії. Агент спочатку видаляв
+  категорію, потім переносив покупки. **Повернуто на доопрацювання:** у SRS
+  REQ-F-024 порядок зворотний — спочатку перенесення, потім видалення.
+  Виправлено; обґрунтування записане в коді.
+
+**Рішення.** Прийнято.
+
+**Прогін після коду.** 78 тестів, усі успішні.

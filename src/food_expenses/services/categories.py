@@ -19,6 +19,7 @@ from ..logging_setup import log_event
 from ..models import Category
 from ..repositories.categories import CategoryRepository
 from ..repositories.profiles import ProfileRepository
+from ..repositories.purchases import PurchaseRepository
 
 MAX_NAME_LENGTH = 40
 
@@ -132,14 +133,32 @@ class CategoryService:
                 raise CategoryIsSystem()
 
             purchase_count = repository.purchase_count(category_id)
-            if purchase_count > 0:
-                # REQ-F-024 (перенесення покупок до «Інше» за підтвердженням)
-                # реалізується на етапі покупок разом зі своїми тестами. До
-                # того часу діє захисне правило: дані не знищуються.
+            if purchase_count > 0 and not confirm:
+                # REQ-F-023: без підтвердження непорожня категорія не видаляється.
                 raise CategoryNotEmpty(
                     f"Категорія містить {purchase_count} покупки. "
                     f"Підтвердіть перенесення до категорії «{SYSTEM_CATEGORY_NAME}».",
                     details=[ErrorDetail("purchaseCount", str(purchase_count))],
+                )
+
+            if purchase_count > 0:
+                # REQ-F-024: спочатку покупки переходять до «Інше», і лише
+                # потім категорія видаляється. Порядок саме такий: інакше
+                # видалення категорії лишило б покупки без неї.
+                system_category = repository.find_system(profile_id)
+                if system_category is None:
+                    raise CategoryNotFound(
+                        f"У профілі немає службової категорії «{SYSTEM_CATEGORY_NAME}».",
+                    )
+                moved = PurchaseRepository(connection).move_to_category(
+                    category_id, system_category.id
+                )
+                log_event(
+                    "category.purchases_moved",
+                    profile=profile_id,
+                    category_from=category_id,
+                    category_to=system_category.id,
+                    moved=moved,
                 )
 
             repository.delete(category_id)

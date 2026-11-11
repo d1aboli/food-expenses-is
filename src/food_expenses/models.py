@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 
 
 @dataclass(frozen=True)
@@ -32,3 +33,22 @@ class Category:
     profile_id: str
     name: str
     is_system: bool
+
+
+@dataclass(frozen=True)
+class Purchase:
+    """Покупка активного профілю (REQ-F-005, REQ-F-006).
+
+    `amount` обчислюється системою як добуток ціни за одиницю та кількості
+    і зберігається разом із записом, щоб підсумки не перераховували його
+    щоразу заново.
+    """
+
+    id: str
+    profile_id: str
+    category_id: str
+    name: str
+    unit_price: Decimal
+    quantity: Decimal
+    amount: Decimal
+    occurred_at: datetime

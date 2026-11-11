@@ -7,6 +7,7 @@ from fastapi import Request
 from ..db import Database
 from ..services.categories import CategoryService
 from ..services.profiles import ProfileService
+from ..services.purchases import PurchaseService
 
 
 def get_database(request: Request) -> Database:
@@ -19,3 +20,7 @@ def get_profile_service(request: Request) -> ProfileService:
 
 def get_category_service(request: Request) -> CategoryService:
     return CategoryService(get_database(request))
+
+
+def get_purchase_service(request: Request) -> PurchaseService:
+    return PurchaseService(get_database(request))
