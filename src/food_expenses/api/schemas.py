@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from ..models import Profile
+from ..models import Category, Profile
 
 
 class ProfileCreateRequest(BaseModel):
@@ -28,4 +28,27 @@ def profile_payload(profile: Profile) -> dict[str, str]:
         "id": profile.id,
         "name": profile.name,
         "createdAt": profile.created_at.isoformat(timespec="seconds"),
+    }
+
+
+class CategoryCreateRequest(BaseModel):
+    """Схема `CategoryCreate` з контракту."""
+
+    name: str
+
+
+class CategoryUpdateRequest(BaseModel):
+    """Схема `CategoryUpdate` з контракту."""
+
+    name: str
+
+
+def category_payload(category: Category, purchase_count: int) -> dict[str, object]:
+    """Схема `Category` з контракту."""
+
+    return {
+        "id": category.id,
+        "name": category.name,
+        "system": category.is_system,
+        "purchaseCount": purchase_count,
     }

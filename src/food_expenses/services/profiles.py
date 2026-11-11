@@ -11,6 +11,7 @@ from ..errors import ErrorDetail, ProfileNameTaken, ProfileNotFound, ValidationF
 from ..logging_setup import log_event
 from ..models import Profile
 from ..repositories.profiles import ProfileRepository
+from .categories import create_base_categories
 
 MAX_NAME_LENGTH = 60
 
@@ -38,6 +39,8 @@ class ProfileService:
                     details=[ErrorDetail("name", "must be unique")],
                 )
             repository.add(profile)
+            # REQ-F-020: профіль одразу отримує базові категорії.
+            create_base_categories(connection, profile.id)
 
         log_event("profile.created", profile=profile.id, name=profile.name)
         return profile
