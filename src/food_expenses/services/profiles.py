@@ -1,0 +1,81 @@
+"""Правила роботи з профілями (REQ-F-001, REQ-F-002, REQ-F-004)."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+
+from ..config import APP_TIMEZONE
+from ..db import Database
+from ..errors import ErrorDetail, ProfileNameTaken, ProfileNotFound, ValidationFailed
+from ..logging_setup import log_event
+from ..models import Profile
+from ..repositories.profiles import ProfileRepository
+
+MAX_NAME_LENGTH = 60
+
+
+class ProfileService:
+    """Створення, перелік і читання профілів."""
+
+    def __init__(self, database: Database) -> None:
+        self._database = database
+
+    def create(self, name: str) -> Profile:
+        """REQ-F-001: створює профіль із зазначеною назвою."""
+
+        cleaned = self._clean_name(name)
+        profile = Profile(
+            id=str(uuid.uuid4()),
+            name=cleaned,
+            created_at=datetime.now(tz=APP_TIMEZONE),
+        )
+
+        with self._database.transaction() as connection:
+            repository = ProfileRepository(connection)
+            if repository.find_by_name(cleaned) is not None:
+                raise ProfileNameTaken(
+                    details=[ErrorDetail("name", "must be unique")],
+                )
+            repository.add(profile)
+
+        log_event("profile.created", profile=profile.id, name=profile.name)
+        return profile
+
+    def list(self) -> list[Profile]:
+        """REQ-F-002, REQ-F-004: перелік наявних профілів, можливо порожній."""
+
+        with self._database.transaction() as connection:
+            return ProfileRepository(connection).list_all()
+
+    def get(self, profile_id: str) -> Profile:
+        """REQ-F-002: читає профіль або повідомляє, що його немає."""
+
+        with self._database.transaction() as connection:
+            profile = ProfileRepository(connection).get(profile_id)
+        if profile is None:
+            raise ProfileNotFound()
+        return profile
+
+    @staticmethod
+    def _clean_name(name: str) -> str:
+        """REQ-F-001: назва відрізняє профіль, тому не може бути порожньою.
+
+        Крайові пробіли прибираються: інакше «Ілля» і «Ілля » були б різними
+        профілями, що суперечить призначенню назви.
+        """
+
+        cleaned = (name or "").strip()
+        if not cleaned:
+            raise ValidationFailed(
+                "Назва профілю не може бути порожньою.",
+                requirement="REQ-F-001",
+                details=[ErrorDetail("name", "must not be blank")],
+            )
+        if len(cleaned) > MAX_NAME_LENGTH:
+            raise ValidationFailed(
+                f"Назва профілю довша за {MAX_NAME_LENGTH} символів.",
+                requirement="REQ-F-001",
+                details=[ErrorDetail("name", f"max length is {MAX_NAME_LENGTH}")],
+            )
+        return cleaned
