@@ -7,13 +7,12 @@ from datetime import datetime
 
 from ..config import APP_TIMEZONE
 from ..db import Database
-from ..errors import ErrorDetail, ProfileNameTaken, ProfileNotFound, ValidationFailed
+from ..errors import ErrorDetail, ProfileNameTaken, ProfileNotFound
 from ..logging_setup import log_event
 from ..models import Profile
 from ..repositories.profiles import ProfileRepository
+from ..text import PROFILE_NAME, clean_name
 from .categories import create_base_categories
-
-MAX_NAME_LENGTH = 60
 
 
 class ProfileService:
@@ -25,7 +24,7 @@ class ProfileService:
     def create(self, name: str) -> Profile:
         """REQ-F-001: створює профіль із зазначеною назвою."""
 
-        cleaned = self._clean_name(name)
+        cleaned = clean_name(name, PROFILE_NAME)
         profile = Profile(
             id=str(uuid.uuid4()),
             name=cleaned,
@@ -60,25 +59,3 @@ class ProfileService:
             raise ProfileNotFound()
         return profile
 
-    @staticmethod
-    def _clean_name(name: str) -> str:
-        """REQ-F-001: назва відрізняє профіль, тому не може бути порожньою.
-
-        Крайові пробіли прибираються: інакше «Ілля» і «Ілля » були б різними
-        профілями, що суперечить призначенню назви.
-        """
-
-        cleaned = (name or "").strip()
-        if not cleaned:
-            raise ValidationFailed(
-                "Назва профілю не може бути порожньою.",
-                requirement="REQ-F-001",
-                details=[ErrorDetail("name", "must not be blank")],
-            )
-        if len(cleaned) > MAX_NAME_LENGTH:
-            raise ValidationFailed(
-                f"Назва профілю довша за {MAX_NAME_LENGTH} символів.",
-                requirement="REQ-F-001",
-                details=[ErrorDetail("name", f"max length is {MAX_NAME_LENGTH}")],
-            )
-        return cleaned

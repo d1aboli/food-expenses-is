@@ -7,11 +7,10 @@ import io
 from datetime import date
 
 from ..db import Database
-from ..errors import ProfileNotFound
 from ..logging_setup import log_event
 from ..money import format_money, format_quantity
-from ..repositories.profiles import ProfileRepository
 from ..repositories.purchases import PurchaseRepository
+from .guards import require_profile
 
 #: REQ-I-003: склад і порядок колонок файлу експорту.
 CSV_HEADER = ["name", "category", "unitPrice", "quantity", "amount", "occurredAt"]
@@ -29,8 +28,7 @@ class ExportService:
         """REQ-F-035: рядок заголовків і по одному рядку на кожну покупку періоду."""
 
         with self._database.transaction() as connection:
-            if not ProfileRepository(connection).exists(profile_id):
-                raise ProfileNotFound()
+            require_profile(connection, profile_id)
             items, _ = PurchaseRepository(connection).list_for_profile(
                 profile_id, since=since, until=until, limit=None
             )

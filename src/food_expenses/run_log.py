@@ -12,7 +12,10 @@ from pathlib import Path
 from .config import APP_TIMEZONE
 
 RUN_LOG_FILE = "test-runs.md"
-HEADER = "# Журнал прогонів тестів\n\nФайл формується автоматично скриптом `tools/run_tests.py` (REQ-NF-005).\n"
+HEADER = (
+    "# Журнал прогонів тестів\n\n"
+    "Файл формується автоматично скриптом `tools/run_tests.py` (REQ-NF-005).\n"
+)
 
 
 def append_test_run(

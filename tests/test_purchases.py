@@ -282,12 +282,15 @@ def test_changing_the_date_moves_the_purchase_between_periods(
     url = f"/profiles/{profile_id}/purchases/{created['id']}"
     client.patch(url, json={"occurredAt": "2026-10-05T18:00:00+03:00"})
 
-    assert purchases_of(client, profile_id, **{"from": "2026-10-05", "to": "2026-10-05"})["total"] == 1
+    on_fifth = {"from": "2026-10-05", "to": "2026-10-05"}
+    on_fourth = {"from": "2026-10-04", "to": "2026-10-04"}
+
+    assert purchases_of(client, profile_id, **on_fifth)["total"] == 1
 
     client.patch(url, json={"occurredAt": "2026-10-04T18:00:00+03:00"})
 
-    assert purchases_of(client, profile_id, **{"from": "2026-10-05", "to": "2026-10-05"})["total"] == 0
-    assert purchases_of(client, profile_id, **{"from": "2026-10-04", "to": "2026-10-04"})["total"] == 1
+    assert purchases_of(client, profile_id, **on_fifth)["total"] == 0
+    assert purchases_of(client, profile_id, **on_fourth)["total"] == 1
 
 
 @pytest.mark.requirement("REQ-F-010")

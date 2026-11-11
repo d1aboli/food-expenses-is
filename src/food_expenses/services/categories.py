@@ -12,16 +12,13 @@ from ..errors import (
     CategoryNotEmpty,
     CategoryNotFound,
     ErrorDetail,
-    ProfileNotFound,
-    ValidationFailed,
 )
 from ..logging_setup import log_event
 from ..models import Category
 from ..repositories.categories import CategoryRepository
-from ..repositories.profiles import ProfileRepository
 from ..repositories.purchases import PurchaseRepository
-
-MAX_NAME_LENGTH = 40
+from ..text import CATEGORY_NAME, clean_name
+from .guards import require_category, require_profile
 
 #: Службова категорія, до якої переносяться покупки з видалених (REQ-F-025).
 SYSTEM_CATEGORY_NAME = "Інше"
@@ -60,13 +57,13 @@ class CategoryService:
         """REQ-F-003: категорії лише вказаного профілю."""
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             return CategoryRepository(connection).list_for_profile(profile_id)
 
     def create(self, profile_id: str, name: str) -> tuple[Category, int]:
         """REQ-F-021: власна категорія з унікальною в межах профілю назвою."""
 
-        cleaned = self._clean_name(name)
+        cleaned = clean_name(name, CATEGORY_NAME)
         category = Category(
             id=str(uuid.uuid4()),
             profile_id=profile_id,
@@ -75,7 +72,7 @@ class CategoryService:
         )
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             repository = CategoryRepository(connection)
             self._require_name_is_free(repository, profile_id, cleaned)
             repository.add(category)
@@ -86,12 +83,12 @@ class CategoryService:
     def rename(self, profile_id: str, category_id: str, name: str) -> tuple[Category, int]:
         """REQ-F-022: перейменування; покупки зберігають зв'язок із категорією."""
 
-        cleaned = self._clean_name(name)
+        cleaned = clean_name(name, CATEGORY_NAME)
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             repository = CategoryRepository(connection)
-            category = self._require_category(repository, profile_id, category_id)
+            category = require_category(connection, profile_id, category_id)
 
             if category.is_system:
                 # REQ-F-025: назва «Інше» закріплена за службовою категорією.
@@ -125,9 +122,9 @@ class CategoryService:
         """
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             repository = CategoryRepository(connection)
-            category = self._require_category(repository, profile_id, category_id)
+            category = require_category(connection, profile_id, category_id)
 
             if category.is_system:
                 raise CategoryIsSystem()
@@ -166,21 +163,6 @@ class CategoryService:
         log_event("category.deleted", profile=profile_id, category=category_id, confirm=confirm)
 
     @staticmethod
-    def _require_profile(connection: sqlite3.Connection, profile_id: str) -> None:
-        if not ProfileRepository(connection).exists(profile_id):
-            raise ProfileNotFound()
-
-    @staticmethod
-    def _require_category(
-        repository: CategoryRepository, profile_id: str, category_id: str
-    ) -> Category:
-        category = repository.get(profile_id, category_id)
-        if category is None:
-            # REQ-F-003: чужа категорія для цього профілю просто не існує.
-            raise CategoryNotFound()
-        return category
-
-    @staticmethod
     def _require_name_is_free(
         repository: CategoryRepository,
         profile_id: str,
@@ -191,21 +173,3 @@ class CategoryService:
         if existing is not None and existing.id != exclude:
             raise CategoryNameTaken(details=[ErrorDetail("name", "must be unique within profile")])
 
-    @staticmethod
-    def _clean_name(name: str) -> str:
-        """REQ-F-021: назва категорії непорожня і не довша за 40 символів."""
-
-        cleaned = (name or "").strip()
-        if not cleaned:
-            raise ValidationFailed(
-                "Назва категорії не може бути порожньою.",
-                requirement="REQ-F-021",
-                details=[ErrorDetail("name", "must not be blank")],
-            )
-        if len(cleaned) > MAX_NAME_LENGTH:
-            raise ValidationFailed(
-                f"Назва категорії довша за {MAX_NAME_LENGTH} символів.",
-                requirement="REQ-F-021",
-                details=[ErrorDetail("name", f"max length is {MAX_NAME_LENGTH}")],
-            )
-        return cleaned

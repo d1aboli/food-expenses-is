@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
 from ..db import Database
-from ..errors import ProfileNotFound
 from ..periods import Period, days_of, month_bounds, resolve
-from ..repositories.profiles import ProfileRepository
 from ..repositories.summaries import PurchaseAmount, SummaryRepository
+from .guards import require_profile
 
 ZERO = Decimal("0.00")
 #: Частка у відсотках заокруглюється до сотих: сума часток тоді відрізняється
@@ -125,14 +123,12 @@ class SummaryService:
             label = f"{item.occurred_date.year:04d}-{item.occurred_date.month:02d}"
             totals[label] = totals.get(label, ZERO) + item.amount
 
-        return [
-            ChartPoint(label=f"{year:04d}-{month:02d}", amount=totals.get(f"{year:04d}-{month:02d}", ZERO))
-            for month in range(1, 13)
-        ]
+        labels = [f"{year:04d}-{month:02d}" for month in range(1, 13)]
+        return [ChartPoint(label=label, amount=totals.get(label, ZERO)) for label in labels]
 
     def _amounts(self, profile_id: str, period: Period) -> list[PurchaseAmount]:
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             return SummaryRepository(connection).amounts_between(
                 profile_id, period.start, period.end
             )
@@ -142,11 +138,6 @@ class SummaryService:
         for item in self._amounts(profile_id, period):
             totals[item.occurred_date] = totals.get(item.occurred_date, ZERO) + item.amount
         return totals
-
-    @staticmethod
-    def _require_profile(connection: sqlite3.Connection, profile_id: str) -> None:
-        if not ProfileRepository(connection).exists(profile_id):
-            raise ProfileNotFound()
 
 
 def _sum(amounts: list[PurchaseAmount]) -> Decimal:

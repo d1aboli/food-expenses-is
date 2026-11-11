@@ -17,6 +17,7 @@ from decimal import Decimal
 
 from .errors import ErrorDetail, ValidationFailed
 from .money import parse_money, parse_quantity
+from .text import PURCHASE_NAME, clean_name
 from .timeutils import now
 
 #: Схема `Money` із затвердженого контракту: рівно два знаки після коми.
@@ -25,27 +26,10 @@ MONEY_PATTERN = re.compile(r"^\d+\.\d{2}$")
 #: Схема `Quantity` із затвердженого контракту: до трьох знаків після коми.
 QUANTITY_PATTERN = re.compile(r"^\d+(\.\d{1,3})?$")
 
-#: Схема `Purchase` із контракту: maxLength назви покупки.
-MAX_PURCHASE_NAME_LENGTH = 100
-
-
 def validate_purchase_name(raw: object) -> str:
     """REQ-F-015: назва покупки обов'язкова."""
 
-    name = str(raw or "").strip()
-    if not name:
-        raise ValidationFailed(
-            "Назва не може бути порожньою.",
-            requirement="REQ-F-015",
-            details=[ErrorDetail("name", "must not be blank")],
-        )
-    if len(name) > MAX_PURCHASE_NAME_LENGTH:
-        raise ValidationFailed(
-            f"Назва покупки довша за {MAX_PURCHASE_NAME_LENGTH} символів.",
-            requirement="REQ-F-015",
-            details=[ErrorDetail("name", f"max length is {MAX_PURCHASE_NAME_LENGTH}")],
-        )
-    return name
+    return clean_name(raw, PURCHASE_NAME)
 
 
 def validate_unit_price(raw: object) -> Decimal:

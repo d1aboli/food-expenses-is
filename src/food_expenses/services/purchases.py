@@ -9,14 +9,13 @@ from decimal import Decimal
 from typing import Any
 
 from ..db import Database
-from ..errors import CategoryNotFound, ProfileNotFound, PurchaseNotFound
+from ..errors import PurchaseNotFound
 from ..logging_setup import log_event
 from ..models import Purchase
 from ..money import calculate_amount
-from ..repositories.categories import CategoryRepository
-from ..repositories.profiles import ProfileRepository
 from ..repositories.purchases import PurchaseRepository
 from ..timeutils import now, parse_datetime
+from .guards import require_category, require_profile
 from ..validation import (
     validate_occurred_at,
     validate_purchase_name,
@@ -62,8 +61,8 @@ class PurchaseService:
         )
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
-            category = self._require_category(connection, profile_id, category_id)
+            require_profile(connection, profile_id)
+            category = require_category(connection, profile_id, category_id)
             PurchaseRepository(connection).add(purchase)
 
         log_event(
@@ -87,7 +86,7 @@ class PurchaseService:
         """REQ-F-012: список покупок від новіших до старіших."""
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             return PurchaseRepository(connection).list_for_profile(
                 profile_id,
                 since=since,
@@ -101,7 +100,7 @@ class PurchaseService:
         """REQ-F-012, REQ-F-003: покупка активного профілю."""
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             found = PurchaseRepository(connection).get(profile_id, purchase_id)
         if found is None:
             raise PurchaseNotFound()
@@ -113,7 +112,7 @@ class PurchaseService:
         """REQ-F-008, REQ-F-009: змінює поля покупки й перераховує вартість."""
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             repository = PurchaseRepository(connection)
             found = repository.get(profile_id, purchase_id)
             if found is None:
@@ -122,7 +121,7 @@ class PurchaseService:
             purchase, category_name = found
             updated = self._apply_changes(connection, profile_id, purchase, changes)
             if updated.category_id != purchase.category_id:
-                category_name = self._require_category(
+                category_name = require_category(
                     connection, profile_id, updated.category_id
                 ).name
             repository.update(updated)
@@ -140,7 +139,7 @@ class PurchaseService:
         """REQ-F-010, REQ-F-009: видаляє покупку."""
 
         with self._database.transaction() as connection:
-            self._require_profile(connection, profile_id)
+            require_profile(connection, profile_id)
             repository = PurchaseRepository(connection)
             if repository.get(profile_id, purchase_id) is None:
                 raise PurchaseNotFound()
@@ -180,7 +179,7 @@ class PurchaseService:
         )
 
         if category_id != purchase.category_id:
-            self._require_category(connection, profile_id, category_id)
+            require_category(connection, profile_id, category_id)
 
         return Purchase(
             id=purchase.id,
@@ -194,15 +193,3 @@ class PurchaseService:
             occurred_at=occurred_at,
         )
 
-    @staticmethod
-    def _require_profile(connection: sqlite3.Connection, profile_id: str) -> None:
-        if not ProfileRepository(connection).exists(profile_id):
-            raise ProfileNotFound()
-
-    @staticmethod
-    def _require_category(connection: sqlite3.Connection, profile_id: str, category_id: str):
-        category = CategoryRepository(connection).get(profile_id, category_id)
-        if category is None:
-            # REQ-F-003: категорія чужого профілю для цього профілю не існує.
-            raise CategoryNotFound()
-        return category
