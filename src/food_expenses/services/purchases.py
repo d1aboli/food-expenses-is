@@ -12,11 +12,17 @@ from ..db import Database
 from ..errors import CategoryNotFound, ProfileNotFound, PurchaseNotFound
 from ..logging_setup import log_event
 from ..models import Purchase
-from ..money import calculate_amount, parse_money, parse_quantity
+from ..money import calculate_amount
 from ..repositories.categories import CategoryRepository
 from ..repositories.profiles import ProfileRepository
 from ..repositories.purchases import PurchaseRepository
 from ..timeutils import now, parse_datetime
+from ..validation import (
+    validate_occurred_at,
+    validate_purchase_name,
+    validate_quantity,
+    validate_unit_price,
+)
 
 DEFAULT_LIMIT = 50
 
@@ -37,14 +43,17 @@ class PurchaseService:
     ) -> tuple[Purchase, str]:
         """REQ-F-005, REQ-F-006, REQ-F-007: додає покупку."""
 
-        price = parse_money(unit_price, field="unitPrice")
-        amount_of = parse_quantity(quantity, field="quantity")
+        # REQ-F-013..REQ-F-019: дані перевіряються до будь-якого запису в базу,
+        # тому відхилений запит не створює покупки.
+        clean_name = validate_purchase_name(name)
+        price = validate_unit_price(unit_price)
+        amount_of = validate_quantity(quantity)
 
         purchase = Purchase(
             id=str(uuid.uuid4()),
             profile_id=profile_id,
             category_id=category_id,
-            name=str(name).strip(),
+            name=clean_name,
             unit_price=price,
             quantity=amount_of,
             amount=calculate_amount(price, amount_of),
@@ -148,20 +157,24 @@ class PurchaseService:
     ) -> Purchase:
         """Збирає новий запис покупки з урахуванням переданих змін."""
 
-        name = str(changes.get("name", purchase.name)).strip()
+        name = (
+            validate_purchase_name(changes["name"])
+            if "name" in changes
+            else purchase.name
+        )
         category_id = changes.get("categoryId", purchase.category_id)
         unit_price: Decimal = (
-            parse_money(changes["unitPrice"], field="unitPrice")
+            validate_unit_price(changes["unitPrice"])
             if "unitPrice" in changes
             else purchase.unit_price
         )
         quantity: Decimal = (
-            parse_quantity(changes["quantity"], field="quantity")
+            validate_quantity(changes["quantity"])
             if "quantity" in changes
             else purchase.quantity
         )
         occurred_at = (
-            parse_datetime(changes["occurredAt"], field="occurredAt")
+            validate_occurred_at(parse_datetime(changes["occurredAt"], field="occurredAt"))
             if "occurredAt" in changes
             else purchase.occurred_at
         )
