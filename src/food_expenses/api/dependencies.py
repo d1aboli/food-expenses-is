@@ -6,6 +6,7 @@ from fastapi import Request
 
 from ..db import Database
 from ..services.backups import BackupService
+from ..services.budgets import BudgetService
 from ..services.categories import CategoryService
 from ..services.exports import ExportService
 from ..services.profiles import ProfileService
@@ -39,3 +40,7 @@ def get_export_service(request: Request) -> ExportService:
 
 def get_backup_service(request: Request) -> BackupService:
     return BackupService(get_database(request), request.app.state.settings.backup_dir)
+
+
+def get_budget_service(request: Request) -> BudgetService:
+    return BudgetService(get_database(request))

@@ -16,6 +16,7 @@ from ..errors import (
 from ..logging_setup import log_event
 from ..models import Category
 from ..repositories.categories import CategoryRepository
+from ..repositories.budgets import BudgetRepository
 from ..repositories.purchases import PurchaseRepository
 from ..text import CATEGORY_NAME, clean_name
 from .guards import require_category, require_profile
@@ -158,8 +159,12 @@ class CategoryService:
                     moved=moved,
                 )
 
+            # REQ-A-008 (адендум ADD-01): разом із категорією зникає і її бюджет.
+            removed_budgets = BudgetRepository(connection).delete_for_category(category_id)
             repository.delete(category_id)
 
+        if removed_budgets:
+            log_event("budget.deleted_with_category", profile=profile_id, category=category_id)
         log_event("category.deleted", profile=profile_id, category=category_id, confirm=confirm)
 
     @staticmethod

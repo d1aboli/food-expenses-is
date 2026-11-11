@@ -52,3 +52,18 @@ class Purchase:
     quantity: Decimal
     amount: Decimal
     occurred_at: datetime
+
+
+@dataclass(frozen=True)
+class Budget:
+    """Місячний бюджет на категорію (адендум ADD-01, REQ-A-001).
+
+    Сума одна й діє для кожного календарного місяця: різні суми для різних
+    місяців до адендуму не входять і залишені відкритим питанням ВП-04.
+    """
+
+    id: str
+    profile_id: str
+    category_id: str
+    monthly_limit: Decimal
+    created_at: datetime

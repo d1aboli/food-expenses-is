@@ -19,7 +19,7 @@ from ..logging_setup import configure_logging, current_trace_id, log_event
 from .error_handling import register_error_handlers
 
 TITLE = "Food Expenses IS API"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -88,12 +88,13 @@ def _routers() -> list:
     пройдено відповідний TEST-GATE.
     """
 
-    from .routers import backups, categories, profiles, purchases, summaries
+    from .routers import backups, budgets, categories, profiles, purchases, summaries
 
     return [
         profiles.router,
         categories.router,
         purchases.router,
         summaries.router,
+        budgets.router,
         backups.router,
     ]

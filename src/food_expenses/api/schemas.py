@@ -14,6 +14,7 @@ from ..config import CURRENCY
 from ..models import Category, Profile, Purchase
 from ..periods import Period
 from ..services.backups import Backup
+from ..services.budgets import BudgetState
 from ..services.summaries import CategoryShare, ChartPoint, Total
 from ..money import format_money, format_quantity
 
@@ -156,4 +157,32 @@ def backup_payload(backup: Backup) -> dict[str, object]:
         "fileName": backup.file_name,
         "sizeBytes": backup.size_bytes,
         "createdAt": backup.created_at.isoformat(timespec="seconds"),
+    }
+
+
+class BudgetCreateRequest(BaseModel):
+    """Схема `BudgetCreate` з контракту 1.1.0 (адендум ADD-01)."""
+
+    categoryId: str
+    limit: str
+
+
+class BudgetUpdateRequest(BaseModel):
+    """Схема `BudgetUpdate` з контракту 1.1.0 (адендум ADD-01)."""
+
+    limit: str
+
+
+def budget_payload(state: BudgetState) -> dict[str, object]:
+    """Схема `Budget` з контракту 1.1.0."""
+
+    return {
+        "id": state.budget.id,
+        "categoryId": state.budget.category_id,
+        "categoryName": state.category_name,
+        "limit": format_money(state.budget.monthly_limit),
+        "spent": format_money(state.spent),
+        "remaining": format_money(state.remaining),
+        "exceeded": state.exceeded,
+        "exceededBy": format_money(state.exceeded_by),
     }

@@ -51,6 +51,17 @@ MIGRATIONS: list[str] = [
     CREATE INDEX idx_purchases_category
         ON purchases (category_id);
     """,
+    # 2 — місячні бюджети на категорії (адендум ADD-01, REQ-A-001, REQ-A-003)
+    """
+    CREATE TABLE budgets (
+        id            TEXT PRIMARY KEY,
+        profile_id    TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        category_id   TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+        monthly_limit TEXT NOT NULL,
+        created_at    TEXT NOT NULL,
+        UNIQUE (profile_id, category_id)
+    );
+    """,
 ]
 
 

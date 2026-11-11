@@ -135,3 +135,27 @@ class BackupFailed(DomainError):
         **kwargs,
     ) -> None:
         super().__init__(message, **kwargs)
+
+
+class BudgetNotFound(DomainError):
+    """Адендум ADD-01."""
+
+    status = 404
+    code = "BUDGET_NOT_FOUND"
+    requirement = "REQ-A-009"
+
+    def __init__(self, message: str = "Бюджет не знайдено.", **kwargs) -> None:
+        super().__init__(message, **kwargs)
+
+
+class BudgetAlreadySet(DomainError):
+    """Адендум ADD-01, REQ-A-003: категорія має не більш ніж один бюджет."""
+
+    status = 409
+    code = "BUDGET_ALREADY_SET"
+    requirement = "REQ-A-003"
+
+    def __init__(
+        self, message: str = "Для цієї категорії бюджет уже встановлено.", **kwargs
+    ) -> None:
+        super().__init__(message, **kwargs)

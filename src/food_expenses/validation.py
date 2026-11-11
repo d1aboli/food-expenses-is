@@ -89,3 +89,25 @@ def validate_occurred_at(moment: datetime) -> datetime:
             details=[ErrorDetail("occurredAt", "must not be in the future")],
         )
     return moment
+
+
+def validate_budget_limit(raw: object) -> Decimal:
+    """REQ-A-002 (ADD-01): сума бюджету більша за нуль, з двома знаками після коми."""
+
+    limit = parse_money(raw, field="limit", requirement="REQ-A-002")
+
+    if limit <= 0:
+        raise ValidationFailed(
+            "Сума бюджету має бути більшою за нуль.",
+            requirement="REQ-A-002",
+            details=[ErrorDetail("limit", "must be > 0")],
+        )
+
+    if not MONEY_PATTERN.match(str(raw).strip()):
+        raise ValidationFailed(
+            "Сума бюджету вказується з двома знаками після коми, наприклад 3000.00.",
+            requirement="REQ-A-002",
+            details=[ErrorDetail("limit", "must match ^\\d+\\.\\d{2}$")],
+        )
+
+    return limit
