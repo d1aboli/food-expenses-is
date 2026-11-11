@@ -3,19 +3,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from ...config import API_PREFIX
 from ...services.exports import ExportService
 from ...services.purchases import DEFAULT_LIMIT, PurchaseService
 from ...timeutils import parse_date
 from ..dependencies import get_export_service, get_purchase_service
+from ..params import PROFILE_ID, PURCHASE_ID
 from ..schemas import PurchaseCreateRequest, PurchaseUpdateRequest, purchase_payload
 
 router = APIRouter(tags=["purchases"])
-
-PROFILE_ID = Path(alias="profileId")
-PURCHASE_ID = Path(alias="purchaseId")
 
 
 @router.get("/profiles/{profileId}/purchases")

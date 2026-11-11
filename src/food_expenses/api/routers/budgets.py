@@ -5,19 +5,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from ...config import API_PREFIX
 from ...periods import parse_month
 from ...services.budgets import BudgetService
 from ...timeutils import now
 from ..dependencies import get_budget_service
+from ..params import BUDGET_ID, PROFILE_ID
 from ..schemas import BudgetCreateRequest, BudgetUpdateRequest, budget_payload
 
 router = APIRouter(tags=["budgets"])
-
-PROFILE_ID = Path(alias="profileId")
-BUDGET_ID = Path(alias="budgetId")
 
 
 @router.get("/profiles/{profileId}/budgets")

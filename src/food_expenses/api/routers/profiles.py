@@ -7,11 +7,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Response
+from fastapi import APIRouter, Depends, Response
 
 from ...config import API_PREFIX
 from ...services.profiles import ProfileService
 from ..dependencies import get_profile_service
+from ..params import PROFILE_ID
 from ..schemas import ProfileCreateRequest, profile_payload
 
 router = APIRouter(tags=["profiles"])
@@ -39,7 +40,7 @@ def create_profile(
 
 @router.get("/profiles/{profileId}")
 def get_profile(
-    profile_id: str = Path(alias="profileId"),
+    profile_id: str = PROFILE_ID,
     service: ProfileService = Depends(get_profile_service),
 ) -> dict:
     """REQ-F-002: читання одного профілю."""

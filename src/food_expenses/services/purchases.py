@@ -15,13 +15,13 @@ from ..models import Purchase
 from ..money import calculate_amount
 from ..repositories.purchases import PurchaseRepository
 from ..timeutils import now, parse_datetime
-from .guards import require_category, require_profile
 from ..validation import (
     validate_occurred_at,
     validate_purchase_name,
     validate_quantity,
     validate_unit_price,
 )
+from .guards import require_category, require_profile
 
 DEFAULT_LIMIT = 50
 

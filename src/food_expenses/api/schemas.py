@@ -6,17 +6,17 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
-
 from decimal import Decimal
+
+from pydantic import BaseModel
 
 from ..config import CURRENCY
 from ..models import Category, Profile, Purchase
+from ..money import format_money, format_quantity
 from ..periods import Period
 from ..services.backups import Backup
 from ..services.budgets import BudgetState
 from ..services.summaries import CategoryShare, ChartPoint, Total
-from ..money import format_money, format_quantity
 
 
 class ProfileCreateRequest(BaseModel):

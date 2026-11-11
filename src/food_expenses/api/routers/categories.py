@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from ...services.categories import CategoryService
 from ..dependencies import get_category_service
+from ..params import CATEGORY_ID, PROFILE_ID
 from ..schemas import CategoryCreateRequest, CategoryUpdateRequest, category_payload
 
 router = APIRouter(tags=["categories"])
-
-PROFILE_ID = Path(alias="profileId")
-CATEGORY_ID = Path(alias="categoryId")
 
 
 @router.get("/profiles/{profileId}/categories")

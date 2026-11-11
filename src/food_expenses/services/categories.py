@@ -15,8 +15,8 @@ from ..errors import (
 )
 from ..logging_setup import log_event
 from ..models import Category
-from ..repositories.categories import CategoryRepository
 from ..repositories.budgets import BudgetRepository
+from ..repositories.categories import CategoryRepository
 from ..repositories.purchases import PurchaseRepository
 from ..text import CATEGORY_NAME, clean_name
 from .guards import require_category, require_profile

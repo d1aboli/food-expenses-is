@@ -16,6 +16,7 @@ from ..repositories.budgets import BudgetRepository
 from ..repositories.summaries import SummaryRepository
 from ..timeutils import now
 from ..validation import validate_budget_limit
+from . import aggregation
 from .guards import require_category, require_profile
 
 ZERO = Decimal("0.00")
@@ -156,10 +157,8 @@ class BudgetService:
         """Витрати профілю за місяць, згруповані за категоріями."""
 
         first, last = month_bounds(year, month)
-        totals: dict[str, Decimal] = {}
-        for item in SummaryRepository(connection).amounts_between(profile_id, first, last):
-            totals[item.category_id] = totals.get(item.category_id, ZERO) + item.amount
-        return totals
+        amounts = SummaryRepository(connection).amounts_between(profile_id, first, last)
+        return aggregation.by_category(amounts)
 
     @staticmethod
     def _current_month() -> tuple[int, int]:

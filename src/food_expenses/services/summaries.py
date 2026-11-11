@@ -9,6 +9,7 @@ from decimal import Decimal
 from ..db import Database
 from ..periods import Period, days_of, month_bounds, resolve
 from ..repositories.summaries import PurchaseAmount, SummaryRepository
+from . import aggregation
 from .guards import require_profile
 
 ZERO = Decimal("0.00")
@@ -62,7 +63,7 @@ class SummaryService:
 
         period = resolve(kind, day=day, start=start, end=end)
         amounts = self._amounts(profile_id, period)
-        return Total(period, _sum(amounts), len(amounts))
+        return Total(period, aggregation.total_of(amounts), len(amounts))
 
     def breakdown(
         self,
@@ -76,21 +77,17 @@ class SummaryService:
 
         period = resolve(kind, day=day, start=start, end=end)
         amounts = self._amounts(profile_id, period)
-        total = _sum(amounts)
-
-        grouped: dict[str, tuple[str, Decimal]] = {}
-        for item in amounts:
-            name, accumulated = grouped.get(item.category_id, (item.category_name, ZERO))
-            grouped[item.category_id] = (name, accumulated + item.amount)
+        total = aggregation.total_of(amounts)
+        names = aggregation.category_names(amounts)
 
         items = [
             CategoryShare(
                 category_id=category_id,
-                category_name=name,
+                category_name=names[category_id],
                 amount=amount,
                 share=_share(amount, total),
             )
-            for category_id, (name, amount) in grouped.items()
+            for category_id, amount in aggregation.by_category(amounts).items()
         ]
         # Найбільша витрата — зверху: саме її шукають у таблиці найчастіше.
         items.sort(key=lambda item: (-item.amount, item.category_name))
@@ -116,12 +113,10 @@ class SummaryService:
         """REQ-F-032: один стовпчик на кожен місяць року."""
 
         period = Period("month", date(year, 1, 1), date(year, 12, 31))
-        amounts = self._amounts(profile_id, period)
-
         totals: dict[str, Decimal] = {}
-        for item in amounts:
-            label = f"{item.occurred_date.year:04d}-{item.occurred_date.month:02d}"
-            totals[label] = totals.get(label, ZERO) + item.amount
+        for day, amount in aggregation.by_day(self._amounts(profile_id, period)).items():
+            label = f"{day.year:04d}-{day.month:02d}"
+            totals[label] = totals.get(label, ZERO) + amount
 
         labels = [f"{year:04d}-{month:02d}" for month in range(1, 13)]
         return [ChartPoint(label=label, amount=totals.get(label, ZERO)) for label in labels]
@@ -134,19 +129,8 @@ class SummaryService:
             )
 
     def _totals_by_day(self, profile_id: str, period: Period) -> dict[date, Decimal]:
-        totals: dict[date, Decimal] = {}
-        for item in self._amounts(profile_id, period):
-            totals[item.occurred_date] = totals.get(item.occurred_date, ZERO) + item.amount
-        return totals
+        return aggregation.by_day(self._amounts(profile_id, period))
 
-
-def _sum(amounts: list[PurchaseAmount]) -> Decimal:
-    """REQ-F-033: за період без покупок підсумок дорівнює 0,00."""
-
-    total = ZERO
-    for item in amounts:
-        total += item.amount
-    return total
 
 
 def _share(amount: Decimal, total: Decimal) -> float:

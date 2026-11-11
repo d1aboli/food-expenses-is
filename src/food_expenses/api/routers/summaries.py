@@ -8,17 +8,16 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Query
 
 from ...periods import parse_month, parse_year
 from ...services.summaries import SummaryService
 from ...timeutils import parse_date
 from ..dependencies import get_summary_service
+from ..params import PROFILE_ID
 from ..schemas import breakdown_payload, chart_payload, summary_payload
 
 router = APIRouter(tags=["summary"])
-
-PROFILE_ID = Path(alias="profileId")
 
 
 def _period_arguments(
