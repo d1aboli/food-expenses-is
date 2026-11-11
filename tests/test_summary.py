@@ -225,9 +225,11 @@ def test_summary_counts_only_the_purchases_of_its_own_profile(client, profile_id
 def test_category_breakdown_shows_amount_and_share(client, profile_id, category_id):
     """REQ-F-030: таблиця «категорія — сума — частка у відсотках»."""
 
-    restaurant = client.post(
-        f"/profiles/{profile_id}/categories", json={"name": "Ресторан"}
-    ).json()
+    restaurant = next(
+        category
+        for category in client.get(f"/profiles/{profile_id}/categories").json()["items"]
+        if category["name"] == "Ресторан"
+    )
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "300.00")
     add_purchase_on(client, profile_id, restaurant["id"], "2026-10-06", "100.00")
 

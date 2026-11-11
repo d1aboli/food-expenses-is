@@ -88,6 +88,11 @@ def _routers() -> list:
     пройдено відповідний TEST-GATE.
     """
 
-    from .routers import categories, profiles, purchases
+    from .routers import categories, profiles, purchases, summaries
 
-    return [profiles.router, categories.router, purchases.router]
+    return [
+        profiles.router,
+        categories.router,
+        purchases.router,
+        summaries.router,
+    ]

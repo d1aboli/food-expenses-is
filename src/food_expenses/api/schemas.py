@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from decimal import Decimal
+
+from ..config import CURRENCY
 from ..models import Category, Profile, Purchase
+from ..periods import Period
+from ..services.summaries import CategoryShare, ChartPoint, Total
 from ..money import format_money, format_quantity
 
 
@@ -90,4 +95,53 @@ def purchase_payload(purchase: Purchase, category_name: str) -> dict[str, object
         "quantity": format_quantity(purchase.quantity),
         "amount": format_money(purchase.amount),
         "occurredAt": purchase.occurred_at.isoformat(timespec="seconds"),
+    }
+
+
+def summary_payload(total: Total) -> dict[str, object]:
+    """Схема `Summary` з контракту."""
+
+    return {
+        "period": total.period.kind,
+        "from": total.period.start.isoformat(),
+        "to": total.period.end.isoformat(),
+        "total": format_money(total.amount),
+        "currency": CURRENCY,
+        "purchaseCount": total.purchase_count,
+    }
+
+
+def breakdown_payload(
+    period: Period, total: Decimal, items: list[CategoryShare]
+) -> dict[str, object]:
+    """Схема `CategoryBreakdown` з контракту."""
+
+    return {
+        "period": period.kind,
+        "from": period.start.isoformat(),
+        "to": period.end.isoformat(),
+        "total": format_money(total),
+        "currency": CURRENCY,
+        "items": [
+            {
+                "categoryId": item.category_id,
+                "categoryName": item.category_name,
+                "amount": format_money(item.amount),
+                "share": item.share,
+            }
+            for item in items
+        ],
+    }
+
+
+def chart_payload(scale: str, period: str, points: list[ChartPoint]) -> dict[str, object]:
+    """Схема `ChartSeries` з контракту."""
+
+    return {
+        "scale": scale,
+        "period": period,
+        "currency": CURRENCY,
+        "points": [
+            {"label": point.label, "amount": format_money(point.amount)} for point in points
+        ],
     }
