@@ -5,7 +5,9 @@ from __future__ import annotations
 from fastapi import Request
 
 from ..db import Database
+from ..services.backups import BackupService
 from ..services.categories import CategoryService
+from ..services.exports import ExportService
 from ..services.profiles import ProfileService
 from ..services.purchases import PurchaseService
 from ..services.summaries import SummaryService
@@ -29,3 +31,11 @@ def get_purchase_service(request: Request) -> PurchaseService:
 
 def get_summary_service(request: Request) -> SummaryService:
     return SummaryService(get_database(request))
+
+
+def get_export_service(request: Request) -> ExportService:
+    return ExportService(get_database(request))
+
+
+def get_backup_service(request: Request) -> BackupService:
+    return BackupService(get_database(request), request.app.state.settings.backup_dir)

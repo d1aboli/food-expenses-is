@@ -6,9 +6,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Path, Query, Response
 
 from ...config import API_PREFIX
+from ...services.exports import ExportService
 from ...services.purchases import DEFAULT_LIMIT, PurchaseService
 from ...timeutils import parse_date
-from ..dependencies import get_purchase_service
+from ..dependencies import get_export_service, get_purchase_service
 from ..schemas import PurchaseCreateRequest, PurchaseUpdateRequest, purchase_payload
 
 router = APIRouter(tags=["purchases"])
@@ -61,6 +62,33 @@ def create_purchase(
     )
     response.headers["Location"] = f"{API_PREFIX}/profiles/{profile_id}/purchases/{purchase.id}"
     return purchase_payload(purchase, category_name)
+
+
+@router.get("/profiles/{profileId}/purchases/export")
+def export_purchases(
+    profile_id: str = PROFILE_ID,
+    since: str | None = Query(default=None, alias="from"),
+    until: str | None = Query(default=None, alias="to"),
+    service: ExportService = Depends(get_export_service),
+) -> Response:
+    """REQ-F-035, REQ-I-003: експорт покупок у CSV.
+
+    Цей маршрут оголошений раніше за `/purchases/{purchaseId}` навмисно:
+    інакше адреса `/purchases/export` збіглася б із шаблоном ідентифікатора
+    покупки, і сервер шукав би покупку з ідентифікатором «export».
+    """
+
+    start = parse_date(since, "from") if since else None
+    end = parse_date(until, "to") if until else None
+    content = service.purchases_csv(profile_id, since=start, until=end)
+
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{service.file_name(start, end)}"'
+        },
+    )
 
 
 @router.get("/profiles/{profileId}/purchases/{purchaseId}")

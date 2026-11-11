@@ -13,6 +13,7 @@ from decimal import Decimal
 from ..config import CURRENCY
 from ..models import Category, Profile, Purchase
 from ..periods import Period
+from ..services.backups import Backup
 from ..services.summaries import CategoryShare, ChartPoint, Total
 from ..money import format_money, format_quantity
 
@@ -144,4 +145,15 @@ def chart_payload(scale: str, period: str, points: list[ChartPoint]) -> dict[str
         "points": [
             {"label": point.label, "amount": format_money(point.amount)} for point in points
         ],
+    }
+
+
+def backup_payload(backup: Backup) -> dict[str, object]:
+    """Схема `Backup` з контракту."""
+
+    return {
+        "id": backup.id,
+        "fileName": backup.file_name,
+        "sizeBytes": backup.size_bytes,
+        "createdAt": backup.created_at.isoformat(timespec="seconds"),
     }
