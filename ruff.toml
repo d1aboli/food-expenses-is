@@ -1,0 +1,48 @@
+# Конфігурація ruff — машинне втілення docs/coding-convention.md.
+# Усе, що тут налаштовано, має відповідний пункт у тексті конвенції.
+
+target-version = "py313"
+line-length = 100
+src = ["src", "tests", "tools"]
+
+[lint]
+select = [
+    "E",    # pycodestyle, помилки (PEP 8)
+    "W",    # pycodestyle, попередження
+    "F",    # pyflakes: невикористане, невизначене
+    "I",    # isort: порядок імпортів
+    "N",    # pep8-naming: імена модулів, класів, функцій, змінних
+    "D",    # pydocstyle: наявність і оформлення docstring-ів (PEP 257)
+    "UP",   # pyupgrade: застарілі конструкції
+    "B",    # flake8-bugbear: типові пастки
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "PTH",  # flake8-use-pathlib: шляхи через pathlib, не через os.path
+    "RUF",  # власні правила ruff
+]
+ignore = [
+    "D203",  # суперечить D211; обраний варіант — без порожнього рядка перед описом
+    "D213",  # суперечить D212; обраний варіант — опис починається в першому рядку
+    "RUF001",  # українські тексти містять кириличні літери, схожі на латинські
+    "RUF002",
+    "RUF003",
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.isort]
+known-first-party = ["food_expenses"]
+
+[lint.per-file-ignores]
+# Тест документується власним іменем і маркером вимоги, а не docstring-ом.
+"tests/*" = ["D100", "D101", "D102", "D103", "D104"]
+# Файли пакета лише збирають підмодулі; окремого опису членів не мають.
+"src/food_expenses/*/__init__.py" = ["D104"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = false

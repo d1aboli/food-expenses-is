@@ -1,0 +1,12 @@
+# Інструменти розробки й документування. Для запуску системи не потрібні:
+# встановлюються додатково до requirements.txt.
+
+# Перевірка відповідності коду конвенції docs/coding-convention.md
+# (аналіз + форматування). Конфігурація — ruff.toml.
+ruff>=0.16
+
+# Генератор автодокументації API-довідника з docstring-ів (docs/sphinx).
+sphinx>=8.1
+# Підтримка Google-style секцій Args/Returns/Raises у docstring-ах.
+# Входить до складу sphinx як sphinx.ext.napoleon, окремо не ставиться.
+sphinx-rtd-theme>=3.0
