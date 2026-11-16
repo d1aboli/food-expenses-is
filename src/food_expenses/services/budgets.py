@@ -33,7 +33,6 @@ class BudgetState:
     @property
     def remaining(self) -> Decimal:
         """Залишок бюджету; 0,00, якщо бюджет перевищено."""
-
         return max(self.budget.monthly_limit - self.spent, ZERO)
 
     @property
@@ -43,7 +42,6 @@ class BudgetState:
     @property
     def exceeded_by(self) -> Decimal:
         """Сума перевищення; 0,00, якщо бюджет не перевищено."""
-
         return max(self.spent - self.budget.monthly_limit, ZERO)
 
 
@@ -55,7 +53,6 @@ class BudgetService:
 
     def list(self, profile_id: str, month: tuple[int, int] | None = None) -> list[BudgetState]:
         """REQ-A-004, REQ-A-005: бюджети з витратами й залишком за місяць."""
-
         year, month_number = month or self._current_month()
 
         with self._database.transaction() as connection:
@@ -70,7 +67,6 @@ class BudgetService:
 
     def create(self, profile_id: str, category_id: str, limit: object) -> BudgetState:
         """REQ-A-001, REQ-A-002, REQ-A-003: встановлює бюджет на категорію."""
-
         monthly_limit = validate_budget_limit(limit)
         year, month_number = self._current_month()
 
@@ -89,9 +85,7 @@ class BudgetService:
             repository = BudgetRepository(connection)
             if repository.find_by_category(profile_id, category_id) is not None:
                 # REQ-A-003: категорія має не більш ніж один бюджет.
-                raise BudgetAlreadySet(
-                    details=[ErrorDetail("categoryId", "budget already exists")]
-                )
+                raise BudgetAlreadySet(details=[ErrorDetail("categoryId", "budget already exists")])
 
             repository.add(budget)
             spending = self._spending_by_category(connection, profile_id, year, month_number)
@@ -107,7 +101,6 @@ class BudgetService:
 
     def update(self, profile_id: str, budget_id: str, limit: object) -> BudgetState:
         """REQ-A-006: змінює суму бюджету; правила REQ-A-002 діють і тут."""
-
         monthly_limit = validate_budget_limit(limit)
         year, month_number = self._current_month()
 
@@ -140,7 +133,6 @@ class BudgetService:
 
     def delete(self, profile_id: str, budget_id: str) -> None:
         """REQ-A-007: видаляє бюджет; покупки категорії не змінюються."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             repository = BudgetRepository(connection)
@@ -155,7 +147,6 @@ class BudgetService:
         connection: sqlite3.Connection, profile_id: str, year: int, month: int
     ) -> dict[str, Decimal]:
         """Витрати профілю за місяць, згруповані за категоріями."""
-
         first, last = month_bounds(year, month)
         amounts = SummaryRepository(connection).amounts_between(profile_id, first, last)
         return aggregation.by_category(amounts)

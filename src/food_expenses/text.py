@@ -58,7 +58,6 @@ def clean_name(raw: object, rule: NameRule) -> str:
     Крайові пробіли прибираються: інакше «Хліб» і «Хліб » були б різними
     назвами, а назва саме для того й потрібна, щоб відрізняти записи.
     """
-
     cleaned = str(raw or "").strip()
 
     if not cleaned:

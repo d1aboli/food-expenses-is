@@ -45,7 +45,6 @@ class BudgetRepository:
 
     def list_for_profile(self, profile_id: str) -> list[tuple[Budget, str]]:
         """Бюджети профілю разом із назвами категорій, у порядку створення."""
-
         rows = self._connection.execute(
             f"""
             SELECT {SELECT_COLUMNS}, c.name AS category_name
@@ -90,7 +89,6 @@ class BudgetRepository:
 
     def delete_for_category(self, category_id: str) -> int:
         """REQ-A-008: разом із категорією зникає і її бюджет."""
-
         cursor = self._connection.execute(
             "DELETE FROM budgets WHERE category_id = ?", (category_id,)
         )

@@ -99,7 +99,6 @@ class PurchaseRepository:
 
         Упорядкування — від новіших до старіших (REQ-F-012).
         """
-
         where, parameters = self._build_filter(profile_id, since, until, category_id)
 
         total = int(
@@ -126,7 +125,6 @@ class PurchaseRepository:
 
     def move_to_category(self, from_category_id: str, to_category_id: str) -> int:
         """REQ-F-024: переносить покупки видаленої категорії до службової."""
-
         cursor = self._connection.execute(
             "UPDATE purchases SET category_id = ? WHERE category_id = ?",
             (to_category_id, from_category_id),

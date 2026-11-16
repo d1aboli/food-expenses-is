@@ -29,7 +29,6 @@ def error_body(
     trace_id: str | None = None,
 ) -> dict[str, Any]:
     """Збирає тіло відповіді за схемою `Error` затвердженого контракту."""
-
     error: dict[str, Any] = {"code": code, "message": message}
     if requirement:
         error["requirement"] = requirement
@@ -39,7 +38,6 @@ def error_body(
 
 def domain_error_response(exc: DomainError) -> JSONResponse:
     """Відповідь на помилку предметної області."""
-
     log_event(
         "request.rejected",
         level=logging.WARNING,
@@ -69,9 +67,7 @@ def register_error_handlers(app: FastAPI) -> None:
         return domain_error_response(exc)
 
     @app.exception_handler(RequestValidationError)
-    async def _handle_request_validation(
-        _: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    async def _handle_request_validation(_: Request, exc: RequestValidationError) -> JSONResponse:
         # Порушення структури тіла запиту — це порушення правила предметної
         # області, контракт відповідає на нього кодом 422 (UnprocessableEntity).
         details = _details_from_request_validation(exc)

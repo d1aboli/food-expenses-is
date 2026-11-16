@@ -1,5 +1,8 @@
-"""Операції `listPurchases`, `createPurchase`, `getPurchase`,
-`updatePurchase`, `deletePurchase` з контракту."""
+"""Маршрути покупок.
+
+Операції `listPurchases`, `createPurchase`, `getPurchase`, `updatePurchase`,
+`deletePurchase` та `exportPurchases` з контракту.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +30,6 @@ def list_purchases(
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
     """REQ-F-012: список покупок активного профілю."""
-
     items, total = service.list(
         profile_id,
         since=parse_date(since, "from") if since else None,
@@ -50,7 +52,6 @@ def create_purchase(
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
     """REQ-F-005: додавання покупки."""
-
     purchase, category_name = service.create(
         profile_id,
         name=request_body.name,
@@ -75,7 +76,6 @@ def export_purchases(
     інакше адреса `/purchases/export` збіглася б із шаблоном ідентифікатора
     покупки, і сервер шукав би покупку з ідентифікатором «export».
     """
-
     start = parse_date(since, "from") if since else None
     end = parse_date(until, "to") if until else None
     content = service.purchases_csv(profile_id, since=start, until=end)
@@ -83,9 +83,7 @@ def export_purchases(
     return Response(
         content=content,
         media_type="text/csv; charset=utf-8",
-        headers={
-            "Content-Disposition": f'attachment; filename="{service.file_name(start, end)}"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="{service.file_name(start, end)}"'},
     )
 
 
@@ -96,7 +94,6 @@ def get_purchase(
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
     """REQ-F-012: одна покупка."""
-
     purchase, category_name = service.get(profile_id, purchase_id)
     return purchase_payload(purchase, category_name)
 
@@ -109,7 +106,6 @@ def update_purchase(
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
     """REQ-F-008, REQ-F-009: зміна покупки."""
-
     purchase, category_name = service.update(
         profile_id, purchase_id, request_body.model_dump(exclude_unset=True)
     )
@@ -123,6 +119,5 @@ def delete_purchase(
     service: PurchaseService = Depends(get_purchase_service),
 ) -> Response:
     """REQ-F-010, REQ-F-009: видалення покупки."""
-
     service.delete(profile_id, purchase_id)
     return Response(status_code=204)

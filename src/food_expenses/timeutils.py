@@ -14,7 +14,6 @@ from .errors import ErrorDetail, InvalidPeriod, ValidationFailed
 
 def now() -> datetime:
     """Поточний момент у часовому поясі застосунку."""
-
     return datetime.now(tz=APP_TIMEZONE)
 
 
@@ -23,7 +22,6 @@ def to_app_timezone(moment: datetime) -> datetime:
 
     Значення без зсуву вважається записаним у місцевому часі.
     """
-
     if moment.tzinfo is None:
         return moment.replace(tzinfo=APP_TIMEZONE)
     return moment.astimezone(APP_TIMEZONE)
@@ -31,7 +29,6 @@ def to_app_timezone(moment: datetime) -> datetime:
 
 def parse_datetime(raw: object, field: str, requirement: str = "REQ-F-008") -> datetime:
     """Розбирає дату й час із запиту або відхиляє значення."""
-
     try:
         moment = datetime.fromisoformat(str(raw))
     except (TypeError, ValueError):
@@ -49,7 +46,6 @@ def parse_date(raw: object, field: str, requirement: str = "REQ-F-029") -> date:
     Некоректна дата в параметрі запиту — це некоректний запит, тому
     контракт відповідає на неї кодом 400 (REQ-F-029).
     """
-
     try:
         return date.fromisoformat(str(raw))
     except (TypeError, ValueError):

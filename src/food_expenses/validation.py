@@ -27,9 +27,9 @@ MONEY_PATTERN = re.compile(r"^\d+\.\d{2}$")
 #: Схема `Quantity` із затвердженого контракту: до трьох знаків після коми.
 QUANTITY_PATTERN = re.compile(r"^\d+(\.\d{1,3})?$")
 
+
 def validate_purchase_name(raw: object) -> str:
     """REQ-F-015: назва покупки обов'язкова."""
-
     return clean_name(raw, PURCHASE_NAME)
 
 
@@ -74,7 +74,6 @@ def validate_money_amount(raw: object, rule: MoneyRule) -> Decimal:
     Порядок саме такий: для «-50.00» головна причина відмови — від'ємне
     значення, а не кількість знаків після коми.
     """
-
     amount = parse_money(raw, field=rule.field, requirement=rule.format_requirement)
 
     if amount <= 0:
@@ -99,13 +98,11 @@ def validate_unit_price(raw: object) -> Decimal:
 
     Верхня межа ціни не встановлюється (REQ-F-017).
     """
-
     return validate_money_amount(raw, UNIT_PRICE)
 
 
 def validate_quantity(raw: object) -> Decimal:
     """REQ-F-014, REQ-F-018: кількість більша за нуль, до трьох знаків після коми."""
-
     quantity = parse_quantity(raw, field="quantity", requirement="REQ-F-018")
 
     if quantity <= 0:
@@ -127,7 +124,6 @@ def validate_quantity(raw: object) -> Decimal:
 
 def validate_occurred_at(moment: datetime) -> datetime:
     """REQ-F-016: дата й час покупки не можуть бути в майбутньому."""
-
     if moment > now():
         raise ValidationFailed(
             "Дата не може бути в майбутньому.",
@@ -139,5 +135,4 @@ def validate_occurred_at(moment: datetime) -> datetime:
 
 def validate_budget_limit(raw: object) -> Decimal:
     """REQ-A-002 (ADD-01): сума бюджету більша за нуль, з двома знаками після коми."""
-
     return validate_money_amount(raw, BUDGET_LIMIT)

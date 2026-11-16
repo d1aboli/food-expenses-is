@@ -11,9 +11,9 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 #: Послідовність міграцій. Номер застосованої міграції зберігається
 #: у `PRAGMA user_version`, тому нова міграція додається в кінець списку.
@@ -85,7 +85,6 @@ class Database:
         Покупка потрапляє до файлу бази в момент підтвердження, тому аварійне
         завершення застосунку не втрачає вже збережені записи (REQ-NF-011).
         """
-
         connection = self.connect()
         try:
             yield connection
@@ -98,7 +97,6 @@ class Database:
 
     def migrate(self) -> int:
         """Доводить схему до останньої версії та повертає її номер."""
-
         with self.transaction() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             for number, script in enumerate(MIGRATIONS[version:], start=version + 1):

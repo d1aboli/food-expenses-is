@@ -28,7 +28,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     Тести передають власні налаштування з тимчасовим каталогом, тому жоден
     прогін тестів не чіпає робочу базу й робочі журнали.
     """
-
     settings = settings or load_settings()
     settings.ensure_directories()
     configure_logging(settings.log_dir)
@@ -45,7 +44,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.middleware("http")
     async def trace_requests(request: Request, call_next):
         """Присвоює запиту trace-ID і пише в журнал кожну дію (REQ-NF-008)."""
-
         trace_id = str(uuid.uuid4())
         token = current_trace_id.set(trace_id)
         started = time.perf_counter()
@@ -87,7 +85,6 @@ def _routers() -> list:
     Маршрути додаються етапами плану `docs/plan.md`, кожен — після того, як
     пройдено відповідний TEST-GATE.
     """
-
     from .routers import backups, budgets, categories, profiles, purchases, summaries
 
     return [

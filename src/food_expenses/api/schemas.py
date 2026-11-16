@@ -16,7 +16,7 @@ from ..money import format_money, format_quantity
 from ..periods import Period
 from ..services.backups import Backup
 from ..services.budgets import BudgetState
-from ..services.summaries import CategoryShare, ChartPoint, Total
+from ..services.summaries import CategoryShare, ChartPoint, PeriodSummary
 
 
 class ProfileCreateRequest(BaseModel):
@@ -31,7 +31,6 @@ class ProfileCreateRequest(BaseModel):
 
 def profile_payload(profile: Profile) -> dict[str, str]:
     """Схема `Profile` з контракту."""
-
     return {
         "id": profile.id,
         "name": profile.name,
@@ -53,7 +52,6 @@ class CategoryUpdateRequest(BaseModel):
 
 def category_payload(category: Category, purchase_count: int) -> dict[str, object]:
     """Схема `Category` з контракту."""
-
     return {
         "id": category.id,
         "name": category.name,
@@ -87,7 +85,6 @@ class PurchaseUpdateRequest(BaseModel):
 
 def purchase_payload(purchase: Purchase, category_name: str) -> dict[str, object]:
     """Схема `Purchase` з контракту."""
-
     return {
         "id": purchase.id,
         "name": purchase.name,
@@ -100,9 +97,8 @@ def purchase_payload(purchase: Purchase, category_name: str) -> dict[str, object
     }
 
 
-def summary_payload(total: Total) -> dict[str, object]:
+def summary_payload(total: PeriodSummary) -> dict[str, object]:
     """Схема `Summary` з контракту."""
-
     return {
         "period": total.period.kind,
         "from": total.period.start.isoformat(),
@@ -117,7 +113,6 @@ def breakdown_payload(
     period: Period, total: Decimal, items: list[CategoryShare]
 ) -> dict[str, object]:
     """Схема `CategoryBreakdown` з контракту."""
-
     return {
         "period": period.kind,
         "from": period.start.isoformat(),
@@ -138,7 +133,6 @@ def breakdown_payload(
 
 def chart_payload(scale: str, period: str, points: list[ChartPoint]) -> dict[str, object]:
     """Схема `ChartSeries` з контракту."""
-
     return {
         "scale": scale,
         "period": period,
@@ -151,7 +145,6 @@ def chart_payload(scale: str, period: str, points: list[ChartPoint]) -> dict[str
 
 def backup_payload(backup: Backup) -> dict[str, object]:
     """Схема `Backup` з контракту."""
-
     return {
         "id": backup.id,
         "fileName": backup.file_name,
@@ -175,7 +168,6 @@ class BudgetUpdateRequest(BaseModel):
 
 def budget_payload(state: BudgetState) -> dict[str, object]:
     """Схема `Budget` з контракту 1.1.0."""
-
     return {
         "id": state.budget.id,
         "categoryId": state.budget.category_id,

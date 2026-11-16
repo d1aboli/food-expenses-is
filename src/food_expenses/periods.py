@@ -46,7 +46,6 @@ def resolve(
     `day` — будь-яка дата всередині періоду для day, week і month;
     `start` і `end` — межі для довільного діапазону.
     """
-
     if kind not in KINDS:
         raise InvalidPeriod(
             f"Невідомий період. Допустимі значення: {', '.join(KINDS)}.",
@@ -72,14 +71,12 @@ def resolve(
 
 def month_bounds(year: int, month: int) -> tuple[date, date]:
     """Перший і останній день місяця."""
-
     last_day = calendar.monthrange(year, month)[1]
     return date(year, month, 1), date(year, month, last_day)
 
 
 def days_of(period: Period) -> list[date]:
     """Усі дати періоду включно з межами."""
-
     return [
         date.fromordinal(ordinal)
         for ordinal in range(period.start.toordinal(), period.end.toordinal() + 1)
@@ -88,7 +85,6 @@ def days_of(period: Period) -> list[date]:
 
 def parse_month(raw: object) -> tuple[int, int]:
     """Розбирає параметр `month` вигляду РРРР-ММ (REQ-F-031)."""
-
     match = MONTH_PATTERN.match(str(raw or "").strip())
     if match is None:
         raise InvalidPeriod(
@@ -108,7 +104,6 @@ def parse_month(raw: object) -> tuple[int, int]:
 
 def parse_year(raw: object) -> int:
     """Розбирає параметр `year` (REQ-F-032)."""
-
     try:
         year = int(str(raw).strip())
     except (TypeError, ValueError):
@@ -128,7 +123,6 @@ def parse_year(raw: object) -> int:
 
 def _range_period(start: date | None, end: date | None) -> Period:
     """REQ-F-029: довільний діапазон, включно з обома межами."""
-
     if start is None or end is None:
         raise InvalidPeriod(
             "Для довільного діапазону потрібні обидві межі: from і to.",

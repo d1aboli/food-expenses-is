@@ -28,7 +28,6 @@ def append_test_run(
     moment: datetime | None = None,
 ) -> Path:
     """Додає запис про прогін тестів і повертає шлях до файлу журналу."""
-
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
     path = log_dir / RUN_LOG_FILE

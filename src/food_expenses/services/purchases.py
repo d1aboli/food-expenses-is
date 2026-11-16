@@ -41,7 +41,6 @@ class PurchaseService:
         quantity: object,
     ) -> tuple[Purchase, str]:
         """REQ-F-005, REQ-F-006, REQ-F-007: додає покупку."""
-
         # REQ-F-013..REQ-F-019: дані перевіряються до будь-якого запису в базу,
         # тому відхилений запит не створює покупки.
         clean_name = validate_purchase_name(name)
@@ -84,7 +83,6 @@ class PurchaseService:
         offset: int = 0,
     ) -> tuple[list[tuple[Purchase, str]], int]:
         """REQ-F-012: список покупок від новіших до старіших."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             return PurchaseRepository(connection).list_for_profile(
@@ -98,7 +96,6 @@ class PurchaseService:
 
     def get(self, profile_id: str, purchase_id: str) -> tuple[Purchase, str]:
         """REQ-F-012, REQ-F-003: покупка активного профілю."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             found = PurchaseRepository(connection).get(profile_id, purchase_id)
@@ -110,7 +107,6 @@ class PurchaseService:
         self, profile_id: str, purchase_id: str, changes: dict[str, Any]
     ) -> tuple[Purchase, str]:
         """REQ-F-008, REQ-F-009: змінює поля покупки й перераховує вартість."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             repository = PurchaseRepository(connection)
@@ -121,9 +117,7 @@ class PurchaseService:
             purchase, category_name = found
             updated = self._apply_changes(connection, profile_id, purchase, changes)
             if updated.category_id != purchase.category_id:
-                category_name = require_category(
-                    connection, profile_id, updated.category_id
-                ).name
+                category_name = require_category(connection, profile_id, updated.category_id).name
             repository.update(updated)
 
         log_event(
@@ -137,7 +131,6 @@ class PurchaseService:
 
     def delete(self, profile_id: str, purchase_id: str) -> None:
         """REQ-F-010, REQ-F-009: видаляє покупку."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             repository = PurchaseRepository(connection)
@@ -155,12 +148,7 @@ class PurchaseService:
         changes: dict[str, Any],
     ) -> Purchase:
         """Збирає новий запис покупки з урахуванням переданих змін."""
-
-        name = (
-            validate_purchase_name(changes["name"])
-            if "name" in changes
-            else purchase.name
-        )
+        name = validate_purchase_name(changes["name"]) if "name" in changes else purchase.name
         category_id = changes.get("categoryId", purchase.category_id)
         unit_price: Decimal = (
             validate_unit_price(changes["unitPrice"])
@@ -168,9 +156,7 @@ class PurchaseService:
             else purchase.unit_price
         )
         quantity: Decimal = (
-            validate_quantity(changes["quantity"])
-            if "quantity" in changes
-            else purchase.quantity
+            validate_quantity(changes["quantity"]) if "quantity" in changes else purchase.quantity
         )
         occurred_at = (
             validate_occurred_at(parse_datetime(changes["occurredAt"], field="occurredAt"))
@@ -192,4 +178,3 @@ class PurchaseService:
             amount=calculate_amount(unit_price, quantity),
             occurred_at=occurred_at,
         )
-

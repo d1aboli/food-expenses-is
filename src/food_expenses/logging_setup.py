@@ -29,7 +29,7 @@ current_trace_id: ContextVar[str] = ContextVar("current_trace_id", default="-")
 class _TraceFilter(logging.Filter):
     """Додає до запису поточний trace-ID, навіть якщо його не передали."""
 
-    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+    def filter(self, record: logging.LogRecord) -> bool:
         if not hasattr(record, "trace"):
             record.trace = current_trace_id.get()
         return True
@@ -45,7 +45,6 @@ class _LocalTimeFormatter(logging.Formatter):
 
 def configure_logging(log_dir: Path) -> logging.Logger:
     """Налаштовує журнали застосунку та повертає кореневий логер системи."""
-
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -80,13 +79,11 @@ def configure_logging(log_dir: Path) -> logging.Logger:
 
 def get_logger() -> logging.Logger:
     """Повертає логер системи."""
-
     return logging.getLogger(LOGGER_NAME)
 
 
 def log_event(event: str, level: int = logging.INFO, **fields: object) -> None:
     """Записує одну дію системи у вигляді «event=... ключ=значення»."""
-
     parts = [f"event={event}"]
     parts.extend(f"{key}={value}" for key, value in fields.items() if value is not None)
     get_logger().log(level, " | ".join(parts))

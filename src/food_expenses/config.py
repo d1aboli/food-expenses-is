@@ -40,7 +40,6 @@ class Settings:
 
 def load_settings(root: Path | None = None) -> Settings:
     """Збирає налаштування зі змінних середовища або з типових шляхів репозиторію."""
-
     base = Path(root) if root is not None else PROJECT_ROOT
     database_path = Path(os.environ.get("FOOD_EXPENSES_DB", base / "data" / "food-expenses.db"))
     log_dir = Path(os.environ.get("FOOD_EXPENSES_LOG_DIR", base / "logs"))

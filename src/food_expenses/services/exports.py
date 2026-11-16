@@ -26,7 +26,6 @@ class ExportService:
         self, profile_id: str, since: date | None = None, until: date | None = None
     ) -> str:
         """REQ-F-035: рядок заголовків і по одному рядку на кожну покупку періоду."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             items, _ = PurchaseRepository(connection).list_for_profile(
@@ -54,7 +53,6 @@ class ExportService:
     @staticmethod
     def file_name(since: date | None, until: date | None) -> str:
         """Ім'я файлу відображає період, за який зроблено вибірку."""
-
         if since and until:
             return f"purchases-{since.isoformat()}_{until.isoformat()}.csv"
         if since:

@@ -1,4 +1,6 @@
-"""Операції `getSummary`, `getCategoryBreakdown`, `getDailyChart`,
+"""Маршрути підсумків і даних графіків.
+
+Операції `getSummary`, `getCategoryBreakdown`, `getDailyChart` та
 `getMonthlyChart` з контракту.
 
 Параметри запиту приймаються рядками й розбираються власним кодом, щоб
@@ -41,7 +43,6 @@ def get_summary(
     service: SummaryService = Depends(get_summary_service),
 ) -> dict:
     """REQ-F-026..REQ-F-029, REQ-F-033: підсумок витрат за період."""
-
     total = service.total(profile_id, **_period_arguments(period, day, since, until))
     return summary_payload(total)
 
@@ -56,7 +57,6 @@ def get_category_breakdown(
     service: SummaryService = Depends(get_summary_service),
 ) -> dict:
     """REQ-F-030: розбивка витрат за категоріями."""
-
     resolved, total, items = service.breakdown(
         profile_id, **_period_arguments(period, day, since, until)
     )
@@ -70,7 +70,6 @@ def get_daily_chart(
     service: SummaryService = Depends(get_summary_service),
 ) -> dict:
     """REQ-F-031: витрати за днями обраного місяця."""
-
     year, month_number = parse_month(month)
     points = service.daily_chart(profile_id, year, month_number)
     return chart_payload("daily", f"{year:04d}-{month_number:02d}", points)
@@ -83,7 +82,6 @@ def get_monthly_chart(
     service: SummaryService = Depends(get_summary_service),
 ) -> dict:
     """REQ-F-032: витрати за місяцями обраного року."""
-
     parsed_year = parse_year(year)
     points = service.monthly_chart(profile_id, parsed_year)
     return chart_payload("monthly", f"{parsed_year:04d}", points)

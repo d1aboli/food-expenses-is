@@ -18,7 +18,6 @@ def list_categories(
     service: CategoryService = Depends(get_category_service),
 ) -> dict:
     """REQ-F-020, REQ-F-003: категорії активного профілю."""
-
     return {
         "items": [
             category_payload(category, purchase_count)
@@ -34,7 +33,6 @@ def create_category(
     service: CategoryService = Depends(get_category_service),
 ) -> dict:
     """REQ-F-021: власна категорія."""
-
     category, purchase_count = service.create(profile_id, request_body.name)
     return category_payload(category, purchase_count)
 
@@ -47,7 +45,6 @@ def rename_category(
     service: CategoryService = Depends(get_category_service),
 ) -> dict:
     """REQ-F-022, REQ-F-025: перейменування категорії."""
-
     category, purchase_count = service.rename(profile_id, category_id, request_body.name)
     return category_payload(category, purchase_count)
 
@@ -60,6 +57,5 @@ def delete_category(
     service: CategoryService = Depends(get_category_service),
 ) -> Response:
     """REQ-F-023, REQ-F-025: видалення категорії."""
-
     service.delete(profile_id, category_id, confirm=confirm)
     return Response(status_code=204)

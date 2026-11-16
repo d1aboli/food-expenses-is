@@ -30,7 +30,6 @@ class ProfileRepository:
 
     def list_all(self) -> list[Profile]:
         """Профілі в порядку створення."""
-
         rows = self._connection.execute(
             "SELECT id, name, created_at FROM profiles ORDER BY created_at, rowid"
         ).fetchall()

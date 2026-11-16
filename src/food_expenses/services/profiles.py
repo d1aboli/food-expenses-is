@@ -23,7 +23,6 @@ class ProfileService:
 
     def create(self, name: str) -> Profile:
         """REQ-F-001: створює профіль із зазначеною назвою."""
-
         cleaned = clean_name(name, PROFILE_NAME)
         profile = Profile(
             id=str(uuid.uuid4()),
@@ -46,16 +45,13 @@ class ProfileService:
 
     def list(self) -> list[Profile]:
         """REQ-F-002, REQ-F-004: перелік наявних профілів, можливо порожній."""
-
         with self._database.transaction() as connection:
             return ProfileRepository(connection).list_all()
 
     def get(self, profile_id: str) -> Profile:
         """REQ-F-002: читає профіль або повідомляє, що його немає."""
-
         with self._database.transaction() as connection:
             profile = ProfileRepository(connection).get(profile_id)
         if profile is None:
             raise ProfileNotFound()
         return profile
-

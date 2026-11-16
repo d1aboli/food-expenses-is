@@ -35,7 +35,6 @@ def create_base_categories(connection: sqlite3.Connection, profile_id: str) -> N
     профілю: профіль без категорій не має сенсу, бо до нього не можна додати
     жодної покупки.
     """
-
     repository = CategoryRepository(connection)
     for name in BASE_CATEGORY_NAMES:
         repository.add(
@@ -56,14 +55,12 @@ class CategoryService:
 
     def list(self, profile_id: str) -> list[tuple[Category, int]]:
         """REQ-F-003: категорії лише вказаного профілю."""
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             return CategoryRepository(connection).list_for_profile(profile_id)
 
     def create(self, profile_id: str, name: str) -> tuple[Category, int]:
         """REQ-F-021: власна категорія з унікальною в межах профілю назвою."""
-
         cleaned = clean_name(name, CATEGORY_NAME)
         category = Category(
             id=str(uuid.uuid4()),
@@ -83,7 +80,6 @@ class CategoryService:
 
     def rename(self, profile_id: str, category_id: str, name: str) -> tuple[Category, int]:
         """REQ-F-022: перейменування; покупки зберігають зв'язок із категорією."""
-
         cleaned = clean_name(name, CATEGORY_NAME)
 
         with self._database.transaction() as connection:
@@ -121,7 +117,6 @@ class CategoryService:
         категорія не видаляється: у відповіді повертається кількість
         пов'язаних покупок.
         """
-
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             repository = CategoryRepository(connection)
@@ -177,4 +172,3 @@ class CategoryService:
         existing = repository.find_by_name(profile_id, name)
         if existing is not None and existing.id != exclude:
             raise CategoryNameTaken(details=[ErrorDetail("name", "must be unique within profile")])
-

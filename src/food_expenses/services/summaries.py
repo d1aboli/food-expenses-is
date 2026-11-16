@@ -19,7 +19,7 @@ SHARE_PRECISION = 2
 
 
 @dataclass(frozen=True)
-class Total:
+class PeriodSummary:
     """Підсумок за період (REQ-F-026..REQ-F-029)."""
 
     period: Period
@@ -58,12 +58,11 @@ class SummaryService:
         day: date | None = None,
         start: date | None = None,
         end: date | None = None,
-    ) -> Total:
+    ) -> PeriodSummary:
         """REQ-F-026..REQ-F-029, REQ-F-033: підсумок витрат за період."""
-
         period = resolve(kind, day=day, start=start, end=end)
         amounts = self._amounts(profile_id, period)
-        return Total(period, aggregation.total_of(amounts), len(amounts))
+        return PeriodSummary(period, aggregation.total_of(amounts), len(amounts))
 
     def breakdown(
         self,
@@ -74,7 +73,6 @@ class SummaryService:
         end: date | None = None,
     ) -> tuple[Period, Decimal, list[CategoryShare]]:
         """REQ-F-030: розбивка витрат за категоріями."""
-
         period = resolve(kind, day=day, start=start, end=end)
         amounts = self._amounts(profile_id, period)
         total = aggregation.total_of(amounts)
@@ -100,7 +98,6 @@ class SummaryService:
         стовпчик має бути на кожен день, а REQ-F-033 вимагає, щоб за порожній
         місяць жоден стовпчик не піднімався над нулем.
         """
-
         first, last = month_bounds(year, month)
         period = Period("month", first, last)
         totals = self._totals_by_day(profile_id, period)
@@ -111,7 +108,6 @@ class SummaryService:
 
     def monthly_chart(self, profile_id: str, year: int) -> list[ChartPoint]:
         """REQ-F-032: один стовпчик на кожен місяць року."""
-
         period = Period("month", date(year, 1, 1), date(year, 12, 31))
         totals: dict[str, Decimal] = {}
         for day, amount in aggregation.by_day(self._amounts(profile_id, period)).items():
@@ -130,7 +126,6 @@ class SummaryService:
 
     def _totals_by_day(self, profile_id: str, period: Period) -> dict[date, Decimal]:
         return aggregation.by_day(self._amounts(profile_id, period))
-
 
 
 def _share(amount: Decimal, total: Decimal) -> float:

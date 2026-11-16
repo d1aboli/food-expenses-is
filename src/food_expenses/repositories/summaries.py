@@ -32,7 +32,6 @@ class SummaryRepository:
 
     def amounts_between(self, profile_id: str, start: date, end: date) -> list[PurchaseAmount]:
         """Покупки профілю за період, включно з обома межами (REQ-F-029)."""
-
         rows = self._connection.execute(
             """
             SELECT p.occurred_date, p.category_id, p.amount, c.name AS category_name

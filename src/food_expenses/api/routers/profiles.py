@@ -21,7 +21,6 @@ router = APIRouter(tags=["profiles"])
 @router.get("/profiles")
 def list_profiles(service: ProfileService = Depends(get_profile_service)) -> dict:
     """REQ-F-002, REQ-F-004: список наявних профілів."""
-
     return {"items": [profile_payload(profile) for profile in service.list()]}
 
 
@@ -32,7 +31,6 @@ def create_profile(
     service: ProfileService = Depends(get_profile_service),
 ) -> dict:
     """REQ-F-001: створення профілю."""
-
     profile = service.create(request_body.name)
     response.headers["Location"] = f"{API_PREFIX}/profiles/{profile.id}"
     return profile_payload(profile)
@@ -44,5 +42,4 @@ def get_profile(
     service: ProfileService = Depends(get_profile_service),
 ) -> dict:
     """REQ-F-002: читання одного профілю."""
-
     return profile_payload(service.get(profile_id))

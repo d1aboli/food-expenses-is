@@ -30,7 +30,6 @@ class CategoryRepository:
 
     def list_for_profile(self, profile_id: str) -> list[tuple[Category, int]]:
         """Категорії профілю в порядку створення разом з кількістю покупок."""
-
         rows = self._connection.execute(
             """
             SELECT c.id, c.profile_id, c.name, c.is_system,
@@ -78,9 +77,7 @@ class CategoryRepository:
         return _to_category(row) if row else None
 
     def rename(self, category_id: str, name: str) -> None:
-        self._connection.execute(
-            "UPDATE categories SET name = ? WHERE id = ?", (name, category_id)
-        )
+        self._connection.execute("UPDATE categories SET name = ? WHERE id = ?", (name, category_id))
 
     def delete(self, category_id: str) -> None:
         self._connection.execute("DELETE FROM categories WHERE id = ?", (category_id,))

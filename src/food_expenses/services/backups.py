@@ -38,7 +38,6 @@ class BackupService:
         копіювання під час незавершеної транзакції дало б файл потрібного
         розміру, який неможливо прочитати.
         """
-
         self._backup_dir.mkdir(parents=True, exist_ok=True)
         moment = now()
         target = self._unique_path(moment)
@@ -68,7 +67,6 @@ class BackupService:
 
     def _unique_path(self, moment: datetime) -> Path:
         """Нова копія не перезаписує попередню."""
-
         stamp = moment.strftime("%Y-%m-%dT%H-%M-%S")
         candidate = self._backup_dir / f"backup-{stamp}.db"
         attempt = 2

@@ -25,7 +25,6 @@ def list_budgets(
     service: BudgetService = Depends(get_budget_service),
 ) -> dict:
     """REQ-A-004, REQ-A-005: бюджети з витратами й залишком за місяць."""
-
     year, month_number = parse_month(month) if month else (now().year, now().month)
     states = service.list(profile_id, month=(year, month_number))
     return {
@@ -43,11 +42,8 @@ def create_budget(
     service: BudgetService = Depends(get_budget_service),
 ) -> dict:
     """REQ-A-001: встановлення бюджету на категорію."""
-
     state = service.create(profile_id, request_body.categoryId, request_body.limit)
-    response.headers["Location"] = (
-        f"{API_PREFIX}/profiles/{profile_id}/budgets/{state.budget.id}"
-    )
+    response.headers["Location"] = f"{API_PREFIX}/profiles/{profile_id}/budgets/{state.budget.id}"
     return budget_payload(state)
 
 
@@ -59,7 +55,6 @@ def update_budget(
     service: BudgetService = Depends(get_budget_service),
 ) -> dict:
     """REQ-A-006: зміна суми бюджету."""
-
     return budget_payload(service.update(profile_id, budget_id, request_body.limit))
 
 
@@ -70,6 +65,5 @@ def delete_budget(
     service: BudgetService = Depends(get_budget_service),
 ) -> Response:
     """REQ-A-007: видалення бюджету."""
-
     service.delete(profile_id, budget_id)
     return Response(status_code=204)
