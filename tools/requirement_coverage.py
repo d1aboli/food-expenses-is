@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -53,6 +52,12 @@ PROCESS_REQUIREMENTS = {
 
 
 def declared_requirements() -> list[str]:
+    """Усі ID вимог зі специфікації та адендуму.
+
+    Returns:
+        ID у порядку появи, без повторів: спершу вимоги з `srs.tex`,
+        потім вимоги адендуму.
+    """
     requirements = SRS_REQUIREMENT.findall(SRS_PATH.read_text(encoding="utf-8"))
     requirements += ADDENDUM_REQUIREMENT.findall(ADDENDUM_PATH.read_text(encoding="utf-8"))
     seen: list[str] = []
@@ -63,6 +68,15 @@ def declared_requirements() -> list[str]:
 
 
 def tests_by_requirement() -> dict[str, list[str]]:
+    """Які тести яку вимогу перевіряють.
+
+    Зв'язок береться з маркера `@pytest.mark.requirement` над тестом
+    (REQ-NF-002), а не з назв файлів: назва файла каже про тему, а маркер —
+    про конкретну вимогу.
+
+    Returns:
+        Відображення «ID вимоги -> імена тестів».
+    """
     coverage: dict[str, list[str]] = defaultdict(list)
     for path in sorted(TESTS_DIR.glob("test_*.py")):
         text = path.read_text(encoding="utf-8")
@@ -74,6 +88,16 @@ def tests_by_requirement() -> dict[str, list[str]]:
 
 
 def main() -> int:
+    """Будує звіт про покриття вимог тестами.
+
+    Вимоги поділяються на три групи: покриті тестами, ті, що
+    перевіряються процесом (історія Git, журнали), і свідомо винесені за
+    межі роботи. Вимога, яка не потрапила в жодну групу, вважається
+    непокритою.
+
+    Returns:
+        0, якщо непокритих вимог немає; 1 інакше.
+    """
     requirements = declared_requirements()
     coverage = tests_by_requirement()
 

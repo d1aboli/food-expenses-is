@@ -33,13 +33,32 @@ class Settings:
     backup_dir: Path
 
     def ensure_directories(self) -> None:
+        """Створює каталоги бази, журналів і резервних копій, якщо їх немає.
+
+        Викликається при старті застосунку до налаштування журналювання:
+        обробник запису у файл не створює каталог сам і впав би при
+        першому ж записі.
+        """
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
 
 def load_settings(root: Path | None = None) -> Settings:
-    """Збирає налаштування зі змінних середовища або з типових шляхів репозиторію."""
+    """Збирає налаштування зі змінних середовища або з типових шляхів.
+
+    Змінні середовища: `FOOD_EXPENSES_DB`, `FOOD_EXPENSES_LOG_DIR`,
+    `FOOD_EXPENSES_BACKUP_DIR`. Кожна з них незалежна: можна змінити лише
+    каталог копій, не чіпаючи решти.
+
+    Args:
+        root: Корінь, відносно якого будуються типові шляхи. Якщо не
+            заданий, береться корінь репозиторію.
+
+    Returns:
+        Налаштування з готовими шляхами; каталоги при цьому ще не
+        створюються — це робить `Settings.ensure_directories`.
+    """
     base = Path(root) if root is not None else PROJECT_ROOT
     database_path = Path(os.environ.get("FOOD_EXPENSES_DB", base / "data" / "food-expenses.db"))
     log_dir = Path(os.environ.get("FOOD_EXPENSES_LOG_DIR", base / "logs"))

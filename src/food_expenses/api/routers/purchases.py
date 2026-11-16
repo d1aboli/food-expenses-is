@@ -29,7 +29,12 @@ def list_purchases(
     offset: int = Query(default=0),
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
-    """REQ-F-012: список покупок активного профілю."""
+    """Операція `listPurchases`: покупки профілю (REQ-F-012).
+
+    Порядок — від новіших до старіших. Вибірку можна звузити періодом і
+    категорією; разом зі сторінкою повертається повна кількість записів у
+    вибірці, а не кількість на сторінці.
+    """
     items, total = service.list(
         profile_id,
         since=parse_date(since, "from") if since else None,
@@ -51,7 +56,14 @@ def create_purchase(
     profile_id: str = PROFILE_ID,
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
-    """REQ-F-005: додавання покупки."""
+    """Операція `createPurchase`: додавання покупки (REQ-F-005).
+
+    Вартість обчислює сервер як добуток ціни на кількість (REQ-F-006);
+    передане клієнтом значення не береться — поле `amount` у контракті
+    позначене `readOnly`. Дата й час проставляються сервером (REQ-F-007).
+    Ціна або кількість, менші чи рівні нулю, порожня назва — 422
+    (REQ-F-013..REQ-F-015).
+    """
     purchase, category_name = service.create(
         profile_id,
         name=request_body.name,
@@ -70,11 +82,16 @@ def export_purchases(
     until: str | None = Query(default=None, alias="to"),
     service: ExportService = Depends(get_export_service),
 ) -> Response:
-    """REQ-F-035, REQ-I-003: експорт покупок у CSV.
+    """Операція `exportPurchases`: вивантаження покупок у CSV (REQ-F-035).
 
-    Цей маршрут оголошений раніше за `/purchases/{purchaseId}` навмисно:
-    інакше адреса `/purchases/export` збіглася б із шаблоном ідентифікатора
-    покупки, і сервер шукав би покупку з ідентифікатором «export».
+    Маршрут оголошений раніше за `/purchases/{purchaseId}` навмисно:
+    інакше адреса `/purchases/export` збіглася б із шаблоном
+    ідентифікатора покупки, і сервер шукав би покупку з ідентифікатором
+    «export». Помилку знайшов червоний тест, який отримав 404
+    `PURCHASE_NOT_FOUND` замість файла.
+
+    Відповідь — `text/csv; charset=utf-8` із заголовком
+    `Content-Disposition` (REQ-I-003).
     """
     start = parse_date(since, "from") if since else None
     end = parse_date(until, "to") if until else None
@@ -93,7 +110,11 @@ def get_purchase(
     purchase_id: str = PURCHASE_ID,
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
-    """REQ-F-012: одна покупка."""
+    """Операція `getPurchase`: одна покупка (REQ-F-012).
+
+    Відповідь 404 `PURCHASE_NOT_FOUND`, зокрема коли покупка існує, але
+    належить іншому профілю (REQ-F-003).
+    """
     purchase, category_name = service.get(profile_id, purchase_id)
     return purchase_payload(purchase, category_name)
 
@@ -105,7 +126,13 @@ def update_purchase(
     purchase_id: str = PURCHASE_ID,
     service: PurchaseService = Depends(get_purchase_service),
 ) -> dict:
-    """REQ-F-008, REQ-F-009: зміна покупки."""
+    """Операція `updatePurchase`: зміна покупки (REQ-F-008).
+
+    Змінити можна будь-яке поле, зокрема дату й час. Вартість
+    перераховується, а підсумки за всі зачеплені періоди змінюються
+    самі, бо ніде не зберігаються (REQ-F-009). Дата в майбутньому — 422
+    (REQ-F-016).
+    """
     purchase, category_name = service.update(
         profile_id, purchase_id, request_body.model_dump(exclude_unset=True)
     )
@@ -118,6 +145,10 @@ def delete_purchase(
     purchase_id: str = PURCHASE_ID,
     service: PurchaseService = Depends(get_purchase_service),
 ) -> Response:
-    """REQ-F-010, REQ-F-009: видалення покупки."""
+    """Операція `deletePurchase`: видалення покупки (REQ-F-010).
+
+    Підсумки за періоди, яких покупка стосувалася, змінюються самі
+    (REQ-F-009). Відповідь 204 без тіла.
+    """
     service.delete(profile_id, purchase_id)
     return Response(status_code=204)

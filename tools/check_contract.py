@@ -34,6 +34,14 @@ METHODS = {"get", "post", "put", "patch", "delete"}
 
 
 def contract_operations(document: dict) -> set[tuple[str, str]]:
+    """Операції, оголошені в контракті.
+
+    Args:
+        document: Розібраний опис OpenAPI.
+
+    Returns:
+        Множина пар «метод, шлях» у нижньому регістрі.
+    """
     return {
         (path, method)
         for path, item in document["paths"].items()
@@ -43,6 +51,14 @@ def contract_operations(document: dict) -> set[tuple[str, str]]:
 
 
 def implemented_operations() -> set[tuple[str, str]]:
+    """Операції, фактично оголошені в застосунку.
+
+    Маршрути читаються з готового застосунку FastAPI, а не з початкового
+    коду: так враховуються і префікс `/api/v1`, і порядок оголошення.
+
+    Returns:
+        Множина пар «метод, шлях» у тому самому вигляді, що й у контракті.
+    """
     workdir = Path(tempfile.mkdtemp())
     app = create_app(
         Settings(
@@ -52,7 +68,7 @@ def implemented_operations() -> set[tuple[str, str]]:
         )
     )
     return {
-        (path[len(API_PREFIX):], method)
+        (path[len(API_PREFIX) :], method)
         for path, item in app.openapi()["paths"].items()
         for method in item
         if method in METHODS
@@ -60,6 +76,16 @@ def implemented_operations() -> set[tuple[str, str]]:
 
 
 def main() -> int:
+    """Звіряє контракт і реалізацію в обидва боки.
+
+    Перевіряється не лише те, що кожна операція контракту реалізована, а
+    й те, що в застосунку немає операцій поза контрактом: друге легко
+    з'являється непомітно і означає поведінку поза затвердженою
+    специфікацією.
+
+    Returns:
+        0, якщо розбіжностей немає; 1 інакше.
+    """
     document = yaml.safe_load(CONTRACT_PATH.read_text(encoding="utf-8"))
 
     validate(document)

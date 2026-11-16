@@ -28,7 +28,13 @@ MIN_YEAR, MAX_YEAR = 2000, 2100
 
 @dataclass(frozen=True)
 class Period:
-    """Період із включними межами."""
+    """Період із включними межами.
+
+    Attributes:
+        kind: Вид періоду: `day`, `week`, `month` або `range`.
+        start: Перший день періоду, входить у період.
+        end: Останній день періоду, теж входить у період.
+    """
 
     kind: str
     start: date
@@ -41,10 +47,21 @@ def resolve(
     start: date | None = None,
     end: date | None = None,
 ) -> Period:
-    """Будує період за його видом.
+    """Будує період за його видом і опорною датою.
 
-    `day` — будь-яка дата всередині періоду для day, week і month;
-    `start` і `end` — межі для довільного діапазону.
+    Args:
+        kind: Вид періоду: `day`, `week`, `month` або `range`.
+        day: Будь-яка дата всередині періоду — для `day`, `week` і
+            `month`. Якщо не задана, береться сьогоднішня.
+        start: Початок діапазону; потрібен лише для `range`.
+        end: Кінець діапазону; потрібен лише для `range`.
+
+    Returns:
+        Період із заповненими межами включно.
+
+    Raises:
+        InvalidPeriod: Невідомий вид періоду, або для `range` не задано
+            межі, або кінець діапазону раніший за початок.
     """
     if kind not in KINDS:
         raise InvalidPeriod(
@@ -70,13 +87,34 @@ def resolve(
 
 
 def month_bounds(year: int, month: int) -> tuple[date, date]:
-    """Перший і останній день місяця."""
+    """Перший і останній день місяця (REQ-F-028).
+
+    Останній день береться з календаря, а не вираховується: лютий
+    високосного року інакше дав би 28 замість 29.
+
+    Args:
+        year: Рік.
+        month: Номер місяця, 1..12.
+
+    Returns:
+        Пара «перший день, останній день».
+    """
     last_day = calendar.monthrange(year, month)[1]
     return date(year, month, 1), date(year, month, last_day)
 
 
 def days_of(period: Period) -> list[date]:
-    """Усі дати періоду включно з межами."""
+    """Усі дати періоду включно з межами.
+
+    Потрібна графіку за днями: точка будується на кожен день місяця, а не
+    лише на ті дні, коли були покупки (REQ-F-031).
+
+    Args:
+        period: Період із заповненими межами.
+
+    Returns:
+        Перелік дат у порядку зростання; щонайменше одна.
+    """
     return [
         date.fromordinal(ordinal)
         for ordinal in range(period.start.toordinal(), period.end.toordinal() + 1)
@@ -84,7 +122,19 @@ def days_of(period: Period) -> list[date]:
 
 
 def parse_month(raw: object) -> tuple[int, int]:
-    """Розбирає параметр `month` вигляду РРРР-ММ (REQ-F-031)."""
+    """Розбирає параметр `month` вигляду РРРР-ММ (REQ-F-031).
+
+    Args:
+        raw: Значення параметра запиту; порожнє теж вважається помилкою.
+
+    Returns:
+        Пара «рік, номер місяця».
+
+    Raises:
+        InvalidPeriod: Значення не відповідає формату, місяць поза
+            1..12 або рік поза дозволеним діапазоном. Відповідь 400, а не
+            422: помилка в самому запиті, а не в даних обліку.
+    """
     match = MONTH_PATTERN.match(str(raw or "").strip())
     if match is None:
         raise InvalidPeriod(
@@ -103,7 +153,18 @@ def parse_month(raw: object) -> tuple[int, int]:
 
 
 def parse_year(raw: object) -> int:
-    """Розбирає параметр `year` (REQ-F-032)."""
+    """Розбирає параметр `year` (REQ-F-032).
+
+    Args:
+        raw: Значення параметра запиту.
+
+    Returns:
+        Рік числом.
+
+    Raises:
+        InvalidPeriod: Значення не є цілим числом або рік поза
+            дозволеним діапазоном.
+    """
     try:
         year = int(str(raw).strip())
     except (TypeError, ValueError):

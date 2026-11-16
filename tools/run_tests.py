@@ -27,7 +27,6 @@ COMMAND = "python tools/run_tests.py"
 
 def _parse_junit(report: Path) -> tuple[int, int, int]:
     """Повертає кортеж (усього, успішних, неуспішних)."""
-
     root = ET.parse(report).getroot()
     suites = [root] if root.tag == "testsuite" else list(root)
     total = failed = skipped = 0
@@ -39,6 +38,18 @@ def _parse_junit(report: Path) -> tuple[int, int, int]:
 
 
 def main(argv: list[str]) -> int:
+    """Запускає тести й записує результат прогону в журнал.
+
+    Звіт `pytest` у форматі JUnit XML складається в тимчасовий каталог і
+    читається одразу: у репозиторії лишається не машинний звіт, а рядок
+    у `logs/test-runs.md` (REQ-NF-005).
+
+    Args:
+        argv: Додаткові аргументи, що передаються `pytest` як є.
+
+    Returns:
+        Код повернення `pytest`.
+    """
     with tempfile.TemporaryDirectory() as workdir:
         report = Path(workdir) / "report.xml"
         started = time.perf_counter()

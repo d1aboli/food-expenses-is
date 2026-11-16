@@ -23,6 +23,8 @@ from ..validation import (
 )
 from .guards import require_category, require_profile
 
+#: Розмір сторінки списку покупок за замовчуванням: стільки записів
+#: повертається, якщо клієнт не задав `limit`.
 DEFAULT_LIMIT = 50
 
 
@@ -30,6 +32,12 @@ class PurchaseService:
     """Додавання, перелік, зміна та видалення покупок."""
 
     def __init__(self, database: Database) -> None:
+        """Прив'язує службу до бази даних.
+
+        Args:
+            database: Доступ до бази. Служба відкриває транзакцію на кожну
+                операцію й не тримає з'єднання між викликами.
+        """
         self._database = database
 
     def create(
@@ -40,7 +48,30 @@ class PurchaseService:
         unit_price: object,
         quantity: object,
     ) -> tuple[Purchase, str]:
-        """REQ-F-005, REQ-F-006, REQ-F-007: додає покупку."""
+        """Додає покупку (REQ-F-005).
+
+        Дані перевіряються до будь-якого звернення до бази, тому
+        відхилений запит не лишає по собі запису (REQ-F-013..REQ-F-019).
+
+        Вартість обчислює сам сервер як добуток ціни на кількість
+        (REQ-F-006), а час проставляє за своїм годинником (REQ-F-007).
+        Ні того, ні іншого клієнт задати не може.
+
+        Args:
+            profile_id: Профіль, до якого додається покупка.
+            name: Назва покупки.
+            category_id: Категорія покупки.
+            unit_price: Ціна за одиницю; приймається рядком.
+            quantity: Кількість; приймається рядком.
+
+        Returns:
+            Пару «покупка, назва категорії».
+
+        Raises:
+            ValidationFailed: Дані не пройшли перевірку.
+            ProfileNotFound: Профілю немає.
+            CategoryNotFound: Категорії немає або вона чужа.
+        """
         # REQ-F-013..REQ-F-019: дані перевіряються до будь-якого запису в базу,
         # тому відхилений запит не створює покупки.
         clean_name = validate_purchase_name(name)
@@ -82,7 +113,24 @@ class PurchaseService:
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> tuple[list[tuple[Purchase, str]], int]:
-        """REQ-F-012: список покупок від новіших до старіших."""
+        """Список покупок профілю (REQ-F-012).
+
+        Args:
+            profile_id: Профіль, покупки якого потрібні.
+            since: Нижня межа за датою покупки, включно.
+            until: Верхня межа за датою покупки, включно.
+            category_id: Обмежити вибірку однією категорією.
+            limit: Розмір сторінки.
+            offset: Скільки записів пропустити.
+
+        Returns:
+            Пару «список пар (покупка, назва категорії), повна кількість
+            записів у вибірці». Повна кількість рахується до застосування
+            `limit`.
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+        """
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             return PurchaseRepository(connection).list_for_profile(
@@ -95,7 +143,20 @@ class PurchaseService:
             )
 
     def get(self, profile_id: str, purchase_id: str) -> tuple[Purchase, str]:
-        """REQ-F-012, REQ-F-003: покупка активного профілю."""
+        """Читає одну покупку (REQ-F-012).
+
+        Args:
+            profile_id: Профіль, якому належить покупка.
+            purchase_id: Ідентифікатор покупки.
+
+        Returns:
+            Пару «покупка, назва категорії».
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+            PurchaseNotFound: Покупки немає або вона належить іншому
+                профілю (REQ-F-003).
+        """
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             found = PurchaseRepository(connection).get(profile_id, purchase_id)
@@ -106,7 +167,32 @@ class PurchaseService:
     def update(
         self, profile_id: str, purchase_id: str, changes: dict[str, Any]
     ) -> tuple[Purchase, str]:
-        """REQ-F-008, REQ-F-009: змінює поля покупки й перераховує вартість."""
+        """Змінює покупку (REQ-F-008).
+
+        Змінити можна будь-яке поле, зокрема дату й час. Вартість після
+        зміни ціни або кількості перераховується завжди: задати її ззовні
+        не можна (REQ-F-006).
+
+        Підсумки за періоди, яких покупка стосувалася, перераховувати
+        окремо не треба — вони ніде не зберігаються й обчислюються при
+        кожному читанні (REQ-F-009).
+
+        Args:
+            profile_id: Профіль, якому належить покупка.
+            purchase_id: Ідентифікатор покупки.
+            changes: Поля, які змінюються, під іменами з контракту:
+                `name`, `categoryId`, `unitPrice`, `quantity`,
+                `occurredAt`. Відсутнє поле лишається без зміни.
+
+        Returns:
+            Пару «змінена покупка, назва її категорії».
+
+        Raises:
+            ValidationFailed: Нові значення не пройшли перевірку.
+            ProfileNotFound: Профілю немає.
+            PurchaseNotFound: Покупки немає або вона чужа.
+            CategoryNotFound: Нова категорія не існує або чужа.
+        """
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             repository = PurchaseRepository(connection)
@@ -130,7 +216,19 @@ class PurchaseService:
         return updated, category_name
 
     def delete(self, profile_id: str, purchase_id: str) -> None:
-        """REQ-F-010, REQ-F-009: видаляє покупку."""
+        """Видаляє покупку (REQ-F-010).
+
+        Підсумки за періоди змінюються самі, бо ніде не зберігаються
+        (REQ-F-009).
+
+        Args:
+            profile_id: Профіль, якому належить покупка.
+            purchase_id: Ідентифікатор покупки.
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+            PurchaseNotFound: Покупки немає або вона чужа.
+        """
         with self._database.transaction() as connection:
             require_profile(connection, profile_id)
             repository = PurchaseRepository(connection)
@@ -147,7 +245,17 @@ class PurchaseService:
         purchase: Purchase,
         changes: dict[str, Any],
     ) -> Purchase:
-        """Збирає новий запис покупки з урахуванням переданих змін."""
+        """Збирає новий запис покупки з урахуванням переданих змін.
+
+        Args:
+            connection: З'єднання в межах поточної транзакції.
+            profile_id: Профіль, якому належить покупка.
+            purchase: Покупка в поточному вигляді.
+            changes: Поля, які змінюються.
+
+        Returns:
+            Новий запис покупки з тим самим ідентифікатором.
+        """
         name = validate_purchase_name(changes["name"]) if "name" in changes else purchase.name
         category_id = changes.get("categoryId", purchase.category_id)
         unit_price: Decimal = (

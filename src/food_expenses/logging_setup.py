@@ -44,7 +44,22 @@ class _LocalTimeFormatter(logging.Formatter):
 
 
 def configure_logging(log_dir: Path) -> logging.Logger:
-    """Налаштовує журнали застосунку та повертає кореневий логер системи."""
+    """Налаштовує журнали застосунку (REQ-NF-006, REQ-NF-008).
+
+    Створюються два обробники: `app.log` приймає всі дії системи від рівня
+    INFO, `errors.log` — лише помилки. Другий потрібен саме окремо: у
+    спільному файлі помилка губиться серед звичайних записів.
+
+    Повторний виклик не множить обробники, а замінює їх. Це важливо для
+    тестів: кожен тест створює застосунок заново, і без заміни записи
+    дублювалися б із кожним прогоном.
+
+    Args:
+        log_dir: Каталог журналів; створюється за потреби.
+
+    Returns:
+        Логер системи, уже з обробниками.
+    """
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -78,12 +93,29 @@ def configure_logging(log_dir: Path) -> logging.Logger:
 
 
 def get_logger() -> logging.Logger:
-    """Повертає логер системи."""
+    """Повертає логер системи.
+
+    Returns:
+        Логер із іменем `food_expenses`. Якщо `configure_logging` ще не
+        викликали, логер повернеться без обробників — записи просто
+        нікуди не підуть, помилки не буде.
+    """
     return logging.getLogger(LOGGER_NAME)
 
 
 def log_event(event: str, level: int = logging.INFO, **fields: object) -> None:
-    """Записує одну дію системи у вигляді «event=... ключ=значення»."""
+    """Записує одну дію системи (REQ-NF-006).
+
+    Формат рядка — `event=<назва> ключ=значення`, однаковий для всіх
+    подій: такий запис і читається людиною, і розбирається пошуком.
+
+    Args:
+        event: Назва події, наприклад `purchase.created`.
+        level: Рівень запису; помилки рівня ERROR потрапляють ще й до
+            `errors.log`.
+        **fields: Додаткові поля події. Поля зі значенням `None`
+            пропускаються, щоб у журналі не з'являлося `category=None`.
+    """
     parts = [f"event={event}"]
     parts.extend(f"{key}={value}" for key, value in fields.items() if value is not None)
     get_logger().log(level, " | ".join(parts))

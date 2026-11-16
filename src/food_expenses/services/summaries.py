@@ -20,7 +20,13 @@ SHARE_PRECISION = 2
 
 @dataclass(frozen=True)
 class PeriodSummary:
-    """Підсумок за період (REQ-F-026..REQ-F-029)."""
+    """Підсумок за період (REQ-F-026..REQ-F-029).
+
+    Attributes:
+        period: Період із заповненими межами.
+        amount: Сума вартостей усіх покупок періоду.
+        purchase_count: Скільки покупок потрапило в період.
+    """
 
     period: Period
     amount: Decimal
@@ -29,7 +35,16 @@ class PeriodSummary:
 
 @dataclass(frozen=True)
 class CategoryShare:
-    """Рядок таблиці «категорія — сума — частка» (REQ-F-030)."""
+    """Рядок таблиці «категорія — сума — частка» (REQ-F-030).
+
+    Attributes:
+        category_id: Ідентифікатор категорії.
+        category_name: Назва категорії.
+        amount: Сума витрат за категорією в межах періоду.
+        share: Частка у відсотках від підсумку, з двома знаками після
+            коми. Саме тут, і лише тут, значення переходить у число з
+            рухомою комою: частка — показник для ока, а не для обліку.
+    """
 
     category_id: str
     category_name: str
@@ -39,7 +54,13 @@ class CategoryShare:
 
 @dataclass(frozen=True)
 class ChartPoint:
-    """Один стовпчик графіка (REQ-F-031, REQ-F-032)."""
+    """Один стовпчик графіка (REQ-F-031, REQ-F-032).
+
+    Attributes:
+        label: Мітка стовпчика: `2026-10-05` для днів, `2026-10` для
+            місяців.
+        amount: Сума за цей день або місяць; може бути 0,00.
+    """
 
     label: str
     amount: Decimal
@@ -49,6 +70,12 @@ class SummaryService:
     """Обчислення підсумків над покупками активного профілю."""
 
     def __init__(self, database: Database) -> None:
+        """Прив'язує службу до бази даних.
+
+        Args:
+            database: Доступ до бази. Служба відкриває транзакцію на кожну
+                операцію й не тримає з'єднання між викликами.
+        """
         self._database = database
 
     def total(
@@ -59,7 +86,25 @@ class SummaryService:
         start: date | None = None,
         end: date | None = None,
     ) -> PeriodSummary:
-        """REQ-F-026..REQ-F-029, REQ-F-033: підсумок витрат за період."""
+        """Підсумок витрат за період (REQ-F-026..REQ-F-029).
+
+        Args:
+            profile_id: Профіль, витрати якого рахуються.
+            kind: Вид періоду: `day`, `week`, `month` або `range`.
+            day: Будь-яка дата всередині періоду — для `day`, `week`,
+                `month`.
+            start: Початок діапазону — для `range`.
+            end: Кінець діапазону — для `range`.
+
+        Returns:
+            Підсумок із межами періоду, сумою та кількістю покупок. За
+            період без покупок сума дорівнює 0,00, а не `None`
+            (REQ-F-033).
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+            InvalidPeriod: Межі періоду задано некоректно.
+        """
         period = resolve(kind, day=day, start=start, end=end)
         amounts = self._amounts(profile_id, period)
         return PeriodSummary(period, aggregation.total_of(amounts), len(amounts))
@@ -72,7 +117,25 @@ class SummaryService:
         start: date | None = None,
         end: date | None = None,
     ) -> tuple[Period, Decimal, list[CategoryShare]]:
-        """REQ-F-030: розбивка витрат за категоріями."""
+        """Розбивка витрат за категоріями (REQ-F-030).
+
+        Args:
+            profile_id: Профіль, витрати якого рахуються.
+            kind: Вид періоду.
+            day: Будь-яка дата всередині періоду.
+            start: Початок діапазону — для `range`.
+            end: Кінець діапазону — для `range`.
+
+        Returns:
+            Трійку «період, загальна сума, рядки розбивки». Рядки
+            впорядковані від більшої суми до меншої: найбільшу витрату в
+            такій таблиці шукають найчастіше. За однакових сум вирішує
+            назва категорії, тому порядок стабільний.
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+            InvalidPeriod: Межі періоду задано некоректно.
+        """
         period = resolve(kind, day=day, start=start, end=end)
         amounts = self._amounts(profile_id, period)
         total = aggregation.total_of(amounts)
@@ -92,11 +155,28 @@ class SummaryService:
         return period, total, items
 
     def daily_chart(self, profile_id: str, year: int, month: int) -> list[ChartPoint]:
-        """REQ-F-031: один стовпчик на кожен день місяця.
+        """Дані графіка витрат за днями місяця (REQ-F-031).
 
-        Дні без покупок лишаються в ряду зі значенням 0,00: за REQ-F-031
-        стовпчик має бути на кожен день, а REQ-F-033 вимагає, щоб за порожній
-        місяць жоден стовпчик не піднімався над нулем.
+        Args:
+            profile_id: Профіль, витрати якого рахуються.
+            year: Рік.
+            month: Номер місяця, 1..12.
+
+        Returns:
+            Точку на кожен день місяця — 28, 29, 30 або 31, залежно від
+            місяця. Дні без покупок лишаються в ряду зі значенням 0,00.
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+
+        Note:
+            Порожній місяць дає не порожній перелік, а 28–31 точку з
+            нулем. Так узгоджено REQ-F-031, який вимагає стовпчик на
+            кожен день, із REQ-F-033, який вимагає порожнього графіка:
+            «порожній» тут означає «жоден стовпчик не піднімається над
+            нулем», а не «стовпчиків немає». Інакше графік за порожній
+            місяць стискався б до нічого, а за місяць із двома покупками
+            показував би два стовпчики поряд, ніби витрати були щодня.
         """
         first, last = month_bounds(year, month)
         period = Period("month", first, last)
@@ -107,7 +187,19 @@ class SummaryService:
         ]
 
     def monthly_chart(self, profile_id: str, year: int) -> list[ChartPoint]:
-        """REQ-F-032: один стовпчик на кожен місяць року."""
+        """Дані графіка витрат за місяцями року (REQ-F-032).
+
+        Args:
+            profile_id: Профіль, витрати якого рахуються.
+            year: Рік.
+
+        Returns:
+            Дванадцять точок незалежно від того, у яких місяцях були
+            покупки — з тієї самої причини, що й у графіку за днями.
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+        """
         period = Period("month", date(year, 1, 1), date(year, 12, 31))
         totals: dict[str, Decimal] = {}
         for day, amount in aggregation.by_day(self._amounts(profile_id, period)).items():

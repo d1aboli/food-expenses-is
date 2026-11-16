@@ -17,16 +17,34 @@ from ..repositories.profiles import ProfileRepository
 
 
 def require_profile(connection: sqlite3.Connection, profile_id: str) -> None:
-    """REQ-F-003: операція можлива лише в наявному профілі."""
+    """Переконується, що профіль існує (REQ-F-003).
+
+    Args:
+        connection: Відкрите з'єднання в межах поточної транзакції.
+        profile_id: Ідентифікатор профілю із шляху запиту.
+
+    Raises:
+        ProfileNotFound: Профілю немає.
+    """
     if not ProfileRepository(connection).exists(profile_id):
         raise ProfileNotFound()
 
 
 def require_category(connection: sqlite3.Connection, profile_id: str, category_id: str) -> Category:
-    """REQ-F-003: категорія чужого профілю для цього профілю не існує.
+    """Переконується, що категорія належить саме цьому профілю (REQ-F-003).
 
-    Саме «не існує», а не «заборонена»: відповідь 404 не повідомляє, що такий
-    запис є в когось іншого.
+    Args:
+        connection: Відкрите з'єднання в межах поточної транзакції.
+        profile_id: Ідентифікатор профілю.
+        category_id: Ідентифікатор категорії із запиту.
+
+    Returns:
+        Категорію — вона майже завжди потрібна одразу після перевірки.
+
+    Raises:
+        CategoryNotFound: Категорії немає або вона належить іншому
+            профілю. Саме «не існує», а не «заборонена»: відповідь 404 не
+            повідомляє, що такий запис є в когось іншого.
     """
     category = CategoryRepository(connection).get(profile_id, category_id)
     if category is None:

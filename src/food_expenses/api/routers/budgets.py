@@ -24,7 +24,14 @@ def list_budgets(
     month: str | None = Query(default=None),
     service: BudgetService = Depends(get_budget_service),
 ) -> dict:
-    """REQ-A-004, REQ-A-005: бюджети з витратами й залишком за місяць."""
+    """Операція `listBudgets`: бюджети профілю за місяць (REQ-A-004).
+
+    Витрати, залишок і перевищення обчислюються при кожному читанні, а не
+    зберігаються: інакше вони розійшлися б із покупками після
+    редагування покупки (REQ-F-009). Без параметра місяця береться
+    поточний. Перевищений бюджет позначається окремо, із сумою
+    перевищення (REQ-A-005).
+    """
     year, month_number = parse_month(month) if month else (now().year, now().month)
     states = service.list(profile_id, month=(year, month_number))
     return {
@@ -41,7 +48,12 @@ def create_budget(
     profile_id: str = PROFILE_ID,
     service: BudgetService = Depends(get_budget_service),
 ) -> dict:
-    """REQ-A-001: встановлення бюджету на категорію."""
+    """Операція `createBudget`: місячний бюджет на категорію (REQ-A-001).
+
+    Категорія може мати не більш ніж один бюджет: повторне встановлення —
+    409 `BUDGET_ALREADY_SET` (REQ-A-003). Сума має бути більшою за нуль —
+    інакше 422 (REQ-A-002).
+    """
     state = service.create(profile_id, request_body.categoryId, request_body.limit)
     response.headers["Location"] = f"{API_PREFIX}/profiles/{profile_id}/budgets/{state.budget.id}"
     return budget_payload(state)
@@ -54,7 +66,11 @@ def update_budget(
     budget_id: str = BUDGET_ID,
     service: BudgetService = Depends(get_budget_service),
 ) -> dict:
-    """REQ-A-006: зміна суми бюджету."""
+    """Операція `updateBudget`: зміна суми бюджету (REQ-A-006).
+
+    Залишок і перевищення перераховуються за новою сумою при наступному
+    читанні. Відповідь 404 `BUDGET_NOT_FOUND`, якщо бюджету немає.
+    """
     return budget_payload(service.update(profile_id, budget_id, request_body.limit))
 
 
@@ -64,6 +80,10 @@ def delete_budget(
     budget_id: str = BUDGET_ID,
     service: BudgetService = Depends(get_budget_service),
 ) -> Response:
-    """REQ-A-007: видалення бюджету."""
+    """Операція `deleteBudget`: зняття бюджету з категорії (REQ-A-007).
+
+    Покупки категорії не змінюються: бюджет — окрема сутність, і зняття
+    бюджету обліку витрат не стосується.
+    """
     service.delete(profile_id, budget_id)
     return Response(status_code=204)

@@ -17,7 +17,12 @@ def list_categories(
     profile_id: str = PROFILE_ID,
     service: CategoryService = Depends(get_category_service),
 ) -> dict:
-    """REQ-F-020, REQ-F-003: категорії активного профілю."""
+    """Операція `listCategories`: категорії профілю (REQ-F-020).
+
+    Кожна категорія повертається разом із кількістю покупок у ній: саме
+    вона потрібна інтерфейсу для попередження перед видаленням
+    (REQ-F-023). Категорії інших профілів не повертаються (REQ-F-003).
+    """
     return {
         "items": [
             category_payload(category, purchase_count)
@@ -32,7 +37,11 @@ def create_category(
     profile_id: str = PROFILE_ID,
     service: CategoryService = Depends(get_category_service),
 ) -> dict:
-    """REQ-F-021: власна категорія."""
+    """Операція `createCategory`: власна категорія (REQ-F-021).
+
+    Назва має бути унікальною в межах профілю, але не глобально.
+    Відповідь 409 `CATEGORY_NAME_TAKEN`, якщо така назва вже є.
+    """
     category, purchase_count = service.create(profile_id, request_body.name)
     return category_payload(category, purchase_count)
 
@@ -44,7 +53,12 @@ def rename_category(
     category_id: str = CATEGORY_ID,
     service: CategoryService = Depends(get_category_service),
 ) -> dict:
-    """REQ-F-022, REQ-F-025: перейменування категорії."""
+    """Операція `renameCategory`: зміна назви категорії (REQ-F-022).
+
+    Покупки зберігають зв'язок із категорією: вони посилаються на
+    ідентифікатор, а не на назву. Службову категорію «Інше»
+    перейменувати не можна — 409 `CATEGORY_IS_SYSTEM` (REQ-F-025).
+    """
     category, purchase_count = service.rename(profile_id, category_id, request_body.name)
     return category_payload(category, purchase_count)
 
@@ -56,6 +70,13 @@ def delete_category(
     confirm: bool = Query(default=False),
     service: CategoryService = Depends(get_category_service),
 ) -> Response:
-    """REQ-F-023, REQ-F-025: видалення категорії."""
+    """Операція `deleteCategory`: видалення категорії (REQ-F-023).
+
+    Непорожня категорія видаляється лише з підтвердженням: без нього —
+    409 `CATEGORY_NOT_EMPTY` із кількістю пов'язаних покупок. З
+    підтвердженням покупки спершу переносяться до службової категорії і
+    лише потім категорія зникає (REQ-F-024). Службову категорію видалити
+    не можна — 409 `CATEGORY_IS_SYSTEM` (REQ-F-025).
+    """
     service.delete(profile_id, category_id, confirm=confirm)
     return Response(status_code=204)

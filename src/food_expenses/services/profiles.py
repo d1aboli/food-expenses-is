@@ -19,10 +19,31 @@ class ProfileService:
     """Створення, перелік і читання профілів."""
 
     def __init__(self, database: Database) -> None:
+        """Прив'язує службу до бази даних.
+
+        Args:
+            database: Доступ до бази. Служба відкриває транзакцію на кожну
+                операцію й не тримає з'єднання між викликами.
+        """
         self._database = database
 
     def create(self, name: str) -> Profile:
-        """REQ-F-001: створює профіль із зазначеною назвою."""
+        """Створює профіль (REQ-F-001).
+
+        Разом із профілем в одній транзакції створюються п'ять базових
+        категорій (REQ-F-020): профіль без категорій не має сенсу, бо до
+        нього не можна додати жодної покупки.
+
+        Args:
+            name: Назва профілю.
+
+        Returns:
+            Створений профіль із новим ідентифікатором і часом створення.
+
+        Raises:
+            ValidationFailed: Назва порожня або довша за 60 символів.
+            ProfileNameTaken: Профіль із такою назвою вже існує.
+        """
         cleaned = clean_name(name, PROFILE_NAME)
         profile = Profile(
             id=str(uuid.uuid4()),
@@ -44,12 +65,28 @@ class ProfileService:
         return profile
 
     def list(self) -> list[Profile]:
-        """REQ-F-002, REQ-F-004: перелік наявних профілів, можливо порожній."""
+        """Перелік наявних профілів (REQ-F-002).
+
+        Returns:
+            Профілі в порядку створення; можливо порожній перелік. Порожній —
+            це не помилка, а сигнал інтерфейсу запропонувати створити перший
+            профіль (REQ-F-004).
+        """
         with self._database.transaction() as connection:
             return ProfileRepository(connection).list_all()
 
     def get(self, profile_id: str) -> Profile:
-        """REQ-F-002: читає профіль або повідомляє, що його немає."""
+        """Читає один профіль (REQ-F-002).
+
+        Args:
+            profile_id: Ідентифікатор профілю.
+
+        Returns:
+            Профіль.
+
+        Raises:
+            ProfileNotFound: Профілю немає.
+        """
         with self._database.transaction() as connection:
             profile = ProfileRepository(connection).get(profile_id)
         if profile is None:

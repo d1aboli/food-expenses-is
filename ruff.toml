@@ -40,6 +40,21 @@ known-first-party = ["food_expenses"]
 "tests/*" = ["D100", "D101", "D102", "D103", "D104"]
 # Файли пакета лише збирають підмодулі; окремого опису членів не мають.
 "src/food_expenses/*/__init__.py" = ["D104"]
+# N818: імена класів-винятків дослівно відповідають кодам помилок контракту
+# (ProfileNotFound <-> PROFILE_NOT_FOUND). Див. розділ 6 конвенції.
+# D107: конструктор підкласу лише задає типове повідомлення; саме
+# повідомлення наведене в docstring-у класу, тому окремий docstring
+# конструктора переказував би код.
+"src/food_expenses/errors.py" = ["N818", "D107"]
+# Імена полів задані схемами OpenAPI, затвердженими на API-GATE.
+"src/food_expenses/api/schemas.py" = ["N815"]
+# formatTime перевизначає метод logging.Formatter зі стандартної бібліотеки.
+"src/food_expenses/logging_setup.py" = ["N802"]
+# Depends()/Path()/Query() у значенні за замовчуванням — спосіб оголошення
+# залежностей, передбачений самим FastAPI.
+"src/food_expenses/api/params.py" = ["B008"]
+"src/food_expenses/api/dependencies.py" = ["B008"]
+"src/food_expenses/api/routers/*.py" = ["B008"]
 
 [format]
 quote-style = "double"

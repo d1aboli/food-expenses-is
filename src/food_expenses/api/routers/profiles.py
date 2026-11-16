@@ -20,7 +20,12 @@ router = APIRouter(tags=["profiles"])
 
 @router.get("/profiles")
 def list_profiles(service: ProfileService = Depends(get_profile_service)) -> dict:
-    """REQ-F-002, REQ-F-004: список наявних профілів."""
+    """Операція `listProfiles`: перелік наявних профілів (REQ-F-002).
+
+    Порожній перелік — звичайна відповідь 200, а не помилка: саме за ним
+    інтерфейс розуміє, що треба запропонувати створити перший профіль
+    (REQ-F-004).
+    """
     return {"items": [profile_payload(profile) for profile in service.list()]}
 
 
@@ -30,7 +35,12 @@ def create_profile(
     response: Response,
     service: ProfileService = Depends(get_profile_service),
 ) -> dict:
-    """REQ-F-001: створення профілю."""
+    """Операція `createProfile`: створення профілю (REQ-F-001).
+
+    Разом із профілем створюються п'ять базових категорій (REQ-F-020).
+    Відповідь 201 із заголовком `Location`; 409 `PROFILE_NAME_TAKEN`,
+    якщо назву вже зайнято; 422, якщо назва порожня або задовга.
+    """
     profile = service.create(request_body.name)
     response.headers["Location"] = f"{API_PREFIX}/profiles/{profile.id}"
     return profile_payload(profile)
@@ -41,5 +51,8 @@ def get_profile(
     profile_id: str = PROFILE_ID,
     service: ProfileService = Depends(get_profile_service),
 ) -> dict:
-    """REQ-F-002: читання одного профілю."""
+    """Операція `getProfile`: один профіль за ідентифікатором (REQ-F-002).
+
+    Відповідь 404 `PROFILE_NOT_FOUND`, якщо профілю немає.
+    """
     return profile_payload(service.get(profile_id))
