@@ -50,11 +50,8 @@ def purchases_of(client, profile_id, **params) -> dict:
 
 
 @pytest.mark.requirement("REQ-F-005")
-def test_purchase_is_created_with_name_category_price_and_quantity(
-    client, profile_id, category_id
-):
+def test_purchase_is_created_with_name_category_price_and_quantity(client, profile_id, category_id):
     """REQ-F-005: покупка додається із зазначеними полями."""
-
     response = client.post(
         f"/profiles/{profile_id}/purchases",
         json={
@@ -76,7 +73,6 @@ def test_purchase_is_created_with_name_category_price_and_quantity(
 @pytest.mark.requirement("REQ-F-006")
 def test_purchase_amount_is_price_multiplied_by_quantity(client, profile_id, category_id):
     """REQ-F-006: для ціни 80,00 і кількості 0,7 вартість дорівнює 56,00."""
-
     purchase = add_purchase(client, profile_id, category_id, unitPrice="80.00", quantity="0.7")
 
     assert purchase["amount"] == "56.00"
@@ -85,7 +81,6 @@ def test_purchase_amount_is_price_multiplied_by_quantity(client, profile_id, cat
 @pytest.mark.requirement("REQ-NF-010")
 def test_purchase_amount_keeps_kopiikas(client, profile_id, category_id):
     """REQ-NF-010: ціна 33,33 і кількість 3 дають 99,99."""
-
     purchase = add_purchase(client, profile_id, category_id, unitPrice="33.33", quantity="3")
 
     assert purchase["amount"] == "99.99"
@@ -94,7 +89,6 @@ def test_purchase_amount_keeps_kopiikas(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-005")
 def test_created_purchase_response_carries_location_header(client, profile_id, category_id):
     """Контракт: відповідь 201 містить заголовок Location."""
-
     response = client.post(
         f"/profiles/{profile_id}/purchases",
         json={
@@ -111,7 +105,6 @@ def test_created_purchase_response_carries_location_header(client, profile_id, c
 @pytest.mark.requirement("REQ-F-007")
 def test_purchase_time_is_set_by_the_server(client, profile_id, category_id):
     """REQ-F-007: дата й час збігаються з системним часом з точністю до хвилини."""
-
     purchase = add_purchase(client, profile_id, category_id)
 
     occurred_at = datetime.fromisoformat(purchase["occurredAt"])
@@ -125,10 +118,7 @@ def test_client_cannot_set_the_time_while_adding_a_purchase(client, profile_id, 
     Схема `PurchaseCreate` не має поля `occurredAt`, тому передане значення
     не повинно вплинути на запис.
     """
-
-    purchase = add_purchase(
-        client, profile_id, category_id, occurredAt="2020-01-01T00:00:00+02:00"
-    )
+    purchase = add_purchase(client, profile_id, category_id, occurredAt="2020-01-01T00:00:00+02:00")
 
     assert not purchase["occurredAt"].startswith("2020-01-01")
 
@@ -136,7 +126,6 @@ def test_client_cannot_set_the_time_while_adding_a_purchase(client, profile_id, 
 @pytest.mark.requirement("REQ-F-011")
 def test_identical_purchases_are_two_different_records(client, profile_id, category_id):
     """REQ-F-011: покупки з однаковими назвою, категорією та датою дозволені."""
-
     first = add_purchase(client, profile_id, category_id)
     second = add_purchase(client, profile_id, category_id)
 
@@ -147,7 +136,6 @@ def test_identical_purchases_are_two_different_records(client, profile_id, categ
 @pytest.mark.requirement("REQ-F-012")
 def test_purchases_are_listed_from_newer_to_older(client, profile_id, category_id):
     """REQ-F-012: список упорядкований за датою й часом від новіших до старіших."""
-
     oldest = add_purchase(client, profile_id, category_id, name="Перша")
     middle = add_purchase(client, profile_id, category_id, name="Друга")
     newest = add_purchase(client, profile_id, category_id, name="Третя")
@@ -165,7 +153,6 @@ def test_purchases_are_listed_from_newer_to_older(client, profile_id, category_i
 @pytest.mark.requirement("REQ-F-012")
 def test_single_purchase_is_available_by_its_identifier(client, profile_id, category_id):
     """REQ-F-012: покупка читається за своїм ідентифікатором."""
-
     created = add_purchase(client, profile_id, category_id)
 
     response = client.get(f"/profiles/{profile_id}/purchases/{created['id']}")
@@ -177,7 +164,6 @@ def test_single_purchase_is_available_by_its_identifier(client, profile_id, cate
 @pytest.mark.requirement("REQ-F-012")
 def test_unknown_purchase_is_reported_as_not_found(client, profile_id):
     """REQ-F-012: неіснуюча покупка повертає помилку за контрактом."""
-
     response = client.get(f"/profiles/{profile_id}/purchases/{UNKNOWN_ID}")
 
     assert_error(response, 404, "PURCHASE_NOT_FOUND", requirement="REQ-F-012")
@@ -190,7 +176,6 @@ def test_purchases_of_one_profile_are_invisible_in_another(client, profile_id, c
     Це критерій прийняття REQ-F-003 зі специфікації: у профілі «Ілля»
     створено покупку, у профілі «Гість» список порожній.
     """
-
     created = add_purchase(client, profile_id, category_id)
     guest = client.post("/profiles", json={"name": "Гість"}).json()["id"]
 
@@ -203,7 +188,6 @@ def test_purchases_of_one_profile_are_invisible_in_another(client, profile_id, c
 @pytest.mark.requirement("REQ-F-005")
 def test_purchase_cannot_be_added_to_a_category_of_another_profile(client, profile_id):
     """REQ-F-003: категорія чужого профілю для цього профілю не існує."""
-
     guest = client.post("/profiles", json={"name": "Гість"}).json()["id"]
     foreign_category = client.get(f"/profiles/{guest}/categories").json()["items"][0]["id"]
 
@@ -221,11 +205,8 @@ def test_purchase_cannot_be_added_to_a_category_of_another_profile(client, profi
 
 
 @pytest.mark.requirement("REQ-F-008")
-def test_purchase_fields_can_be_changed_and_amount_is_recalculated(
-    client, profile_id, category_id
-):
+def test_purchase_fields_can_be_changed_and_amount_is_recalculated(client, profile_id, category_id):
     """REQ-F-008: можна змінити будь-яке поле покупки."""
-
     created = add_purchase(client, profile_id, category_id)
 
     response = client.patch(
@@ -241,7 +222,6 @@ def test_purchase_fields_can_be_changed_and_amount_is_recalculated(
 @pytest.mark.requirement("REQ-F-008")
 def test_purchase_time_can_be_changed(client, profile_id, category_id):
     """REQ-F-008: дату й час покупки можна змінити."""
-
     created = add_purchase(client, profile_id, category_id)
 
     response = client.patch(
@@ -255,7 +235,6 @@ def test_purchase_time_can_be_changed(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-008")
 def test_purchase_category_can_be_changed(client, profile_id, category_id):
     """REQ-F-008: покупку можна перенести в іншу категорію."""
-
     created = add_purchase(client, profile_id, category_id)
     other = client.post(f"/profiles/{profile_id}/categories", json={"name": "Перекуси"}).json()
 
@@ -268,16 +247,13 @@ def test_purchase_category_can_be_changed(client, profile_id, category_id):
 
 
 @pytest.mark.requirement("REQ-F-009")
-def test_changing_the_date_moves_the_purchase_between_periods(
-    client, profile_id, category_id
-):
+def test_changing_the_date_moves_the_purchase_between_periods(client, profile_id, category_id):
     """REQ-F-009: після зміни дати покупка належить іншому періоду.
 
     Критерій прийняття REQ-F-009 сформульований через підсумки; підсумки
     з'являються на наступному етапі, тому тут перевіряється те саме на рівні
     вибірки за діапазоном дат.
     """
-
     created = add_purchase(client, profile_id, category_id)
     url = f"/profiles/{profile_id}/purchases/{created['id']}"
     client.patch(url, json={"occurredAt": "2026-10-05T18:00:00+03:00"})
@@ -296,7 +272,6 @@ def test_changing_the_date_moves_the_purchase_between_periods(
 @pytest.mark.requirement("REQ-F-010")
 def test_purchase_is_deleted(client, profile_id, category_id):
     """REQ-F-010: покупку можна видалити."""
-
     created = add_purchase(client, profile_id, category_id)
 
     response = client.delete(f"/profiles/{profile_id}/purchases/{created['id']}")
@@ -308,7 +283,6 @@ def test_purchase_is_deleted(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-010")
 def test_deleting_an_unknown_purchase_is_reported_as_not_found(client, profile_id):
     """REQ-F-010: видалення неіснуючої покупки відхиляється."""
-
     response = client.delete(f"/profiles/{profile_id}/purchases/{UNKNOWN_ID}")
 
     assert_error(response, 404, "PURCHASE_NOT_FOUND")
@@ -317,7 +291,6 @@ def test_deleting_an_unknown_purchase_is_reported_as_not_found(client, profile_i
 @pytest.mark.requirement("REQ-F-012")
 def test_purchases_can_be_filtered_by_category(client, profile_id, category_id):
     """Контракт: параметр `categoryId` звужує список покупок."""
-
     add_purchase(client, profile_id, category_id, name="Хліб")
     other = client.post(f"/profiles/{profile_id}/categories", json={"name": "Перекуси"}).json()
     add_purchase(client, profile_id, other["id"], name="Горішки")
@@ -331,7 +304,6 @@ def test_purchases_can_be_filtered_by_category(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-012")
 def test_purchase_list_is_paginated_and_reports_the_total(client, profile_id, category_id):
     """Контракт: `limit` і `offset` ділять список, `total` лишається повним."""
-
     for index in range(3):
         add_purchase(client, profile_id, category_id, name=f"Покупка {index}")
 
@@ -344,7 +316,6 @@ def test_purchase_list_is_paginated_and_reports_the_total(client, profile_id, ca
 @pytest.mark.requirement("REQ-F-005")
 def test_purchase_creation_is_written_to_the_action_log(client, profile_id, category_id, settings):
     """Усі дії в системі потрапляють у журнал."""
-
     created = add_purchase(client, profile_id, category_id)
 
     log = (settings.log_dir / "app.log").read_text(encoding="utf-8")

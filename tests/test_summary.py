@@ -32,7 +32,6 @@ def category_id(client, profile_id) -> str:
 
 def add_purchase_on(client, profile_id, category_id, day: str, amount: str, name="Покупка"):
     """Додає покупку із заданою вартістю і переносить її на вказаний день."""
-
     created = client.post(
         f"/profiles/{profile_id}/purchases",
         json={
@@ -65,7 +64,6 @@ def breakdown(client, profile_id, **params):
 @pytest.mark.requirement("REQ-F-026")
 def test_daily_total_counts_only_that_day(client, profile_id, category_id):
     """REQ-F-026: підсумок за календарну добу."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "100.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "50.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-06", "70.00")
@@ -88,7 +86,6 @@ def test_weekly_total_runs_from_monday_to_sunday(client, profile_id, category_id
     Понеділок 05.10 — 100,00, неділя 11.10 — 50,00, разом 150,00.
     Покупка наступного понеділка 12.10 у підсумок не входить.
     """
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "100.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-11", "50.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-12", "999.00")
@@ -103,7 +100,6 @@ def test_weekly_total_runs_from_monday_to_sunday(client, profile_id, category_id
 @pytest.mark.requirement("REQ-F-027")
 def test_week_boundaries_are_the_same_for_any_day_inside_it(client, profile_id, category_id):
     """REQ-F-027: тиждень визначається днем, а не порядком звернення."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-08", "25.00")
 
     for day in ["2026-10-05", "2026-10-08", "2026-10-11"]:
@@ -118,7 +114,6 @@ def test_week_boundaries_are_the_same_for_any_day_inside_it(client, profile_id, 
 @pytest.mark.requirement("REQ-F-028")
 def test_monthly_total_runs_from_the_first_to_the_last_day(client, profile_id, category_id):
     """REQ-F-028: місяць з 1-го по останнє число включно."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-01", "10.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-31", "20.00")
     add_purchase_on(client, profile_id, category_id, "2026-09-30", "999.00")
@@ -136,7 +131,6 @@ def test_monthly_total_runs_from_the_first_to_the_last_day(client, profile_id, c
 @pytest.mark.requirement("REQ-F-029")
 def test_range_includes_both_boundary_days(client, profile_id, category_id):
     """REQ-F-029: критерій прийняття — діапазон 01.10–03.10 включно з межами."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-01", "10.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-03", "30.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-04", "999.00")
@@ -152,7 +146,6 @@ def test_range_includes_both_boundary_days(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-029")
 def test_range_of_a_single_day_is_allowed(client, profile_id, category_id):
     """REQ-F-029: діапазон з однієї доби — припустимий випадок."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-02", "15.00")
 
     payload = summary(
@@ -165,7 +158,6 @@ def test_range_of_a_single_day_is_allowed(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-029")
 def test_range_with_reversed_boundaries_is_a_bad_request(client, profile_id):
     """REQ-F-029: кінець періоду не може бути раніший за початок."""
-
     response = client.get(
         f"/profiles/{profile_id}/summary",
         params={"period": "range", "from": "2026-10-05", "to": "2026-10-01"},
@@ -177,7 +169,6 @@ def test_range_with_reversed_boundaries_is_a_bad_request(client, profile_id):
 @pytest.mark.requirement("REQ-F-029")
 def test_range_without_boundaries_is_a_bad_request(client, profile_id):
     """Контракт: для `period=range` потрібні обидві межі."""
-
     response = client.get(f"/profiles/{profile_id}/summary", params={"period": "range"})
 
     assert_error(response, 400, "INVALID_PERIOD")
@@ -186,7 +177,6 @@ def test_range_without_boundaries_is_a_bad_request(client, profile_id):
 @pytest.mark.requirement("REQ-F-026")
 def test_unknown_period_is_a_bad_request(client, profile_id):
     """Контракт: допустимі значення — day, week, month, range."""
-
     response = client.get(f"/profiles/{profile_id}/summary", params={"period": "quarter"})
 
     assert_error(response, 400, "INVALID_PERIOD", field="period")
@@ -198,7 +188,6 @@ def test_unknown_period_is_a_bad_request(client, profile_id):
 @pytest.mark.requirement("REQ-F-033")
 def test_empty_period_returns_zero(client, profile_id):
     """REQ-F-033: за період без покупок підсумок дорівнює 0,00."""
-
     payload = summary(client, profile_id, period="month", date="2026-03-15")
 
     assert payload["total"] == "0.00"
@@ -209,7 +198,6 @@ def test_empty_period_returns_zero(client, profile_id):
 @pytest.mark.requirement("REQ-F-003")
 def test_summary_counts_only_the_purchases_of_its_own_profile(client, profile_id, category_id):
     """REQ-F-003: підсумок не бачить покупок інших профілів."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "100.00")
     guest = client.post("/profiles", json={"name": "Гість"}).json()["id"]
 
@@ -224,7 +212,6 @@ def test_summary_counts_only_the_purchases_of_its_own_profile(client, profile_id
 @pytest.mark.requirement("REQ-F-030")
 def test_category_breakdown_shows_amount_and_share(client, profile_id, category_id):
     """REQ-F-030: таблиця «категорія — сума — частка у відсотках»."""
-
     restaurant = next(
         category
         for category in client.get(f"/profiles/{profile_id}/categories").json()["items"]
@@ -245,7 +232,6 @@ def test_category_breakdown_shows_amount_and_share(client, profile_id, category_
 @pytest.mark.requirement("REQ-F-030")
 def test_category_shares_add_up_to_one_hundred_percent(client, profile_id, category_id):
     """REQ-F-030: сума часток дорівнює 100% з точністю до 0,1%."""
-
     names = ["Ресторан", "Доставка", "Напої"]
     categories = [category_id] + [
         category["id"]
@@ -263,7 +249,6 @@ def test_category_shares_add_up_to_one_hundred_percent(client, profile_id, categ
 @pytest.mark.requirement("REQ-F-030")
 def test_breakdown_skips_categories_without_purchases(client, profile_id, category_id):
     """REQ-F-030: у таблиці лише категорії, у яких є витрати за період."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "100.00")
 
     payload = breakdown(client, profile_id, period="month", date="2026-10-15")
@@ -274,7 +259,6 @@ def test_breakdown_skips_categories_without_purchases(client, profile_id, catego
 @pytest.mark.requirement("REQ-F-033")
 def test_breakdown_for_empty_period_is_empty(client, profile_id):
     """REQ-F-033: за період без покупок таблиця порожня, підсумок 0,00."""
-
     payload = breakdown(client, profile_id, period="month", date="2026-03-15")
 
     assert payload["items"] == []
@@ -284,7 +268,6 @@ def test_breakdown_for_empty_period_is_empty(client, profile_id):
 @pytest.mark.requirement("REQ-F-009")
 def test_totals_are_recalculated_after_a_purchase_is_deleted(client, profile_id, category_id):
     """REQ-F-009: після видалення покупки підсумки перераховуються."""
-
     created = add_purchase_on(client, profile_id, category_id, "2026-10-05", "100.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "50.00")
 
@@ -300,7 +283,6 @@ def test_totals_follow_the_purchase_when_its_date_changes(client, profile_id, ca
     Після перенесення покупки з 05.10 на 04.10 підсумок за 05.10 зменшується
     на її вартість, а підсумок за 04.10 зростає на ту саму суму.
     """
-
     created = add_purchase_on(client, profile_id, category_id, "2026-10-05", "80.00")
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "20.00")
 

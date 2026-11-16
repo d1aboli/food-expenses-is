@@ -28,19 +28,16 @@ ISO_DATETIME_PATTERN = re.compile(
 @functools.lru_cache(maxsize=1)
 def contract() -> dict[str, Any]:
     """Завантажує затверджений контракт."""
-
     return yaml.safe_load(CONTRACT_PATH.read_text(encoding="utf-8"))
 
 
 def _resolvable(schema: dict[str, Any]) -> dict[str, Any]:
     """Додає до схеми розділ `components`, щоб у ній працювали посилання `$ref`."""
-
     return {**schema, "components": contract()["components"]}
 
 
 def schema_ref(name: str) -> dict[str, Any]:
     """Схема з розділу `components/schemas` контракту."""
-
     if name not in contract()["components"]["schemas"]:
         raise KeyError(f"У контракті немає схеми {name}")
     return _resolvable({"$ref": f"#/components/schemas/{name}"})
@@ -53,7 +50,6 @@ def response_schema(
     media_type: str = "application/json",
 ) -> dict[str, Any]:
     """Схема тіла відповіді конкретної операції контракту."""
-
     document = contract()
     operation = document["paths"][path][method.lower()]
     response = operation["responses"][str(status)]
@@ -67,7 +63,6 @@ def response_schema(
 
 def assert_matches(payload: Any, schema: dict[str, Any]) -> None:
     """Перевіряє, що значення відповідає схемі контракту."""
-
     Draft202012Validator(schema).validate(payload)
 
 
@@ -75,7 +70,6 @@ def assert_response_matches_contract(
     response, path: str, method: str, status: int | str | None = None
 ) -> dict[str, Any]:
     """Звіряє код і тіло відповіді з контрактом; повертає розібране тіло."""
-
     expected_status = int(status) if status is not None else response.status_code
     assert response.status_code == expected_status, (
         f"{method.upper()} {path}: очікувався статус {expected_status}, "
@@ -94,10 +88,8 @@ def assert_error(
     field: str | None = None,
 ) -> dict[str, Any]:
     """Перевіряє, що помилка відповідає єдиній моделі `Error` з контракту."""
-
     assert response.status_code == status, (
-        f"очікувався статус {status}, отримано {response.status_code}, "
-        f"тіло {response.text}"
+        f"очікувався статус {status}, отримано {response.status_code}, тіло {response.text}"
     )
     payload = response.json()
     assert_matches(payload, schema_ref("Error"))

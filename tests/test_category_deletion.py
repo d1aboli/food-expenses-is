@@ -29,9 +29,7 @@ def category_named(client, profile_id, name) -> dict:
 
 @pytest.fixture
 def category_with_three_purchases(client, profile_id) -> dict:
-    category = client.post(
-        f"/profiles/{profile_id}/categories", json={"name": "Ресторани"}
-    ).json()
+    category = client.post(f"/profiles/{profile_id}/categories", json={"name": "Ресторани"}).json()
     for index in range(3):
         client.post(
             f"/profiles/{profile_id}/purchases",
@@ -50,7 +48,6 @@ def test_category_reports_the_number_of_its_purchases(
     client, profile_id, category_with_three_purchases
 ):
     """REQ-F-023: система знає, скільки покупок пов'язано з категорією."""
-
     category = category_named(client, profile_id, "Ресторани")
 
     assert category["purchaseCount"] == 3
@@ -61,7 +58,6 @@ def test_non_empty_category_is_not_deleted_without_confirmation(
     client, profile_id, category_with_three_purchases
 ):
     """REQ-F-023: показується попередження з кількістю пов'язаних покупок."""
-
     response = client.delete(
         f"/profiles/{profile_id}/categories/{category_with_three_purchases['id']}"
     )
@@ -79,7 +75,6 @@ def test_confirmed_deletion_moves_purchases_to_the_system_category(
     client, profile_id, category_with_three_purchases
 ):
     """REQ-F-024: після підтвердження покупки переходять до «Інше», категорія зникає."""
-
     response = client.delete(
         f"/profiles/{profile_id}/categories/{category_with_three_purchases['id']}?confirm=true"
     )
@@ -98,7 +93,6 @@ def test_confirmed_deletion_keeps_the_purchases_themselves(
     client, profile_id, category_with_three_purchases
 ):
     """REQ-F-024: переносяться саме покупки, а не їхня кількість — дані не зникають."""
-
     client.delete(
         f"/profiles/{profile_id}/categories/{category_with_three_purchases['id']}?confirm=true"
     )
@@ -111,7 +105,6 @@ def test_confirmed_deletion_keeps_the_purchases_themselves(
 @pytest.mark.requirement("REQ-F-022")
 def test_renamed_category_keeps_its_purchases(client, profile_id, category_with_three_purchases):
     """REQ-F-022: після перейменування покупки зберігають зв'язок із категорією."""
-
     response = client.patch(
         f"/profiles/{profile_id}/categories/{category_with_three_purchases['id']}",
         json={"name": "Кафе"},
@@ -129,7 +122,6 @@ def test_moving_purchases_to_the_system_category_is_written_to_the_action_log(
     client, profile_id, category_with_three_purchases, settings
 ):
     """Перенесення покупок — дія, яка змінює дані, тому вона в журналі."""
-
     client.delete(
         f"/profiles/{profile_id}/categories/{category_with_three_purchases['id']}?confirm=true"
     )

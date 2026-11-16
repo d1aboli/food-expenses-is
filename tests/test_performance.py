@@ -53,7 +53,6 @@ def fill_with_purchases(settings: Settings, profile_id: str, category_id: str) -
 @pytest.mark.requirement("REQ-NF-009")
 def test_monthly_summary_on_ten_thousand_purchases_is_under_one_second(client, settings):
     """REQ-NF-009: підсумок за період обчислюється менше ніж за секунду."""
-
     profile_id = client.post("/profiles", json={"name": "Ілля"}).json()["id"]
     category_id = client.get(f"/profiles/{profile_id}/categories").json()["items"][0]["id"]
 

@@ -27,7 +27,6 @@ def settings(tmp_path: Path) -> Settings:
 @pytest.fixture
 def client(settings: Settings) -> TestClient:
     """Клієнт REST API з базовою адресою /api/v1, як у контракті."""
-
     app = create_app(settings)
     with TestClient(app, base_url=f"http://localhost{API_PREFIX}") as test_client:
         yield test_client

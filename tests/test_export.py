@@ -60,7 +60,6 @@ def rows_of(response) -> list[list[str]]:
 @pytest.mark.requirement("REQ-I-003")
 def test_export_starts_with_the_agreed_header(client, profile_id, category_id):
     """REQ-I-003: назва, категорія, ціна за одиницю, кількість, вартість, дата й час."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "25.50")
 
     rows = rows_of(export(client, profile_id))
@@ -71,7 +70,6 @@ def test_export_starts_with_the_agreed_header(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-035")
 def test_export_has_one_row_per_purchase(client, profile_id, category_id):
     """REQ-F-035: критерій прийняття — рядок заголовків і по рядку на покупку."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "25.50", name="Хліб")
     add_purchase_on(client, profile_id, category_id, "2026-10-06", "80.00", "0.7", "Яблука")
 
@@ -83,7 +81,6 @@ def test_export_has_one_row_per_purchase(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-F-035")
 def test_export_amounts_match_the_purchase_list(client, profile_id, category_id):
     """REQ-F-035: суми у файлі збігаються зі списком покупок."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-06", "80.00", "0.7", "Яблука")
 
     row = rows_of(export(client, profile_id))[1]
@@ -99,7 +96,6 @@ def test_export_amounts_match_the_purchase_list(client, profile_id, category_id)
 @pytest.mark.requirement("REQ-I-003")
 def test_export_is_utf8_and_keeps_ukrainian_names(client, profile_id, category_id):
     """REQ-I-003: кодування UTF-8."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "12.00", name="Їжа «смачна»")
 
     response = export(client, profile_id)
@@ -111,7 +107,6 @@ def test_export_is_utf8_and_keeps_ukrainian_names(client, profile_id, category_i
 @pytest.mark.requirement("REQ-F-035")
 def test_export_is_returned_as_a_csv_attachment(client, profile_id, category_id):
     """Контракт: тип вмісту text/csv і заголовок Content-Disposition."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "12.00")
 
     response = export(client, profile_id)
@@ -125,7 +120,6 @@ def test_export_is_returned_as_a_csv_attachment(client, profile_id, category_id)
 @pytest.mark.requirement("REQ-F-035")
 def test_export_covers_only_the_requested_period(client, profile_id, category_id):
     """REQ-F-035: експортуються покупки за обраний період."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-01", "10.00", name="Усередині")
     add_purchase_on(client, profile_id, category_id, "2026-10-09", "20.00", name="Поза межами")
 
@@ -138,7 +132,6 @@ def test_export_covers_only_the_requested_period(client, profile_id, category_id
 @pytest.mark.requirement("REQ-F-033")
 def test_export_of_an_empty_period_has_only_the_header(client, profile_id):
     """За період без покупок файл містить лише рядок заголовків."""
-
     rows = rows_of(export(client, profile_id, **{"from": "2026-03-01", "to": "2026-03-31"}))
 
     assert rows == [EXPECTED_HEADER]
@@ -147,7 +140,6 @@ def test_export_of_an_empty_period_has_only_the_header(client, profile_id):
 @pytest.mark.requirement("REQ-F-003")
 def test_export_of_an_unknown_profile_is_not_found(client):
     """REQ-F-003: експорт можливий лише для наявного профілю."""
-
     response = export(client, "00000000-0000-4000-8000-000000000000")
 
     assert_error(response, 404, "PROFILE_NOT_FOUND")
@@ -156,7 +148,6 @@ def test_export_of_an_unknown_profile_is_not_found(client):
 @pytest.mark.requirement("REQ-F-029")
 def test_export_with_unparsable_dates_is_a_bad_request(client, profile_id):
     """Контракт: некоректний параметр запиту — 400."""
-
     response = export(client, profile_id, **{"from": "05.10.2026"})
 
     assert_error(response, 400, "INVALID_PERIOD", field="from")
@@ -165,7 +156,6 @@ def test_export_with_unparsable_dates_is_a_bad_request(client, profile_id):
 @pytest.mark.requirement("REQ-F-035")
 def test_export_is_written_to_the_action_log(client, profile_id, category_id, settings):
     """Експорт — дія в системі, тому вона в журналі."""
-
     add_purchase_on(client, profile_id, category_id, "2026-10-05", "12.00")
 
     export(client, profile_id)
@@ -180,7 +170,6 @@ def test_export_is_written_to_the_action_log(client, profile_id, category_id, se
 @pytest.mark.requirement("REQ-F-036")
 def test_backup_is_created(client, settings, profile_id):
     """REQ-F-036: система створює резервну копію файлу бази даних."""
-
     response = client.post(BACKUPS)
 
     payload = assert_response_matches_contract(response, BACKUPS, "post", 201)
@@ -192,7 +181,6 @@ def test_backup_is_created(client, settings, profile_id):
 @pytest.mark.requirement("REQ-F-036")
 def test_backup_contains_the_stored_data(client, settings, profile_id, category_id):
     """REQ-F-036: копія придатна для відновлення, а не просто порожній файл."""
-
     client.post(
         f"/profiles/{profile_id}/purchases",
         json={
@@ -216,7 +204,6 @@ def test_backup_contains_the_stored_data(client, settings, profile_id, category_
 @pytest.mark.requirement("REQ-F-036")
 def test_repeated_backups_do_not_overwrite_each_other(client, settings, profile_id):
     """REQ-F-036: нова копія не знищує попередню."""
-
     first = client.post(BACKUPS).json()["fileName"]
     second = client.post(BACKUPS).json()["fileName"]
 
@@ -228,7 +215,6 @@ def test_repeated_backups_do_not_overwrite_each_other(client, settings, profile_
 @pytest.mark.requirement("REQ-F-036")
 def test_backup_is_written_to_the_action_log(client, settings, profile_id):
     """Створення копії — дія в системі, тому вона в журналі."""
-
     client.post(BACKUPS)
 
     log = (settings.log_dir / "app.log").read_text(encoding="utf-8")

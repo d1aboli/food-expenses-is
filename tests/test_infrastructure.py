@@ -26,7 +26,6 @@ ISO_WITH_OFFSET = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{
 @pytest.mark.requirement("REQ-F-034")
 def test_migration_creates_tables_for_profiles_categories_and_purchases(settings: Settings):
     """REQ-F-034: дані зберігаються в локальній базі даних."""
-
     database = Database(settings.database_path)
     database.migrate()
 
@@ -36,7 +35,6 @@ def test_migration_creates_tables_for_profiles_categories_and_purchases(settings
 @pytest.mark.requirement("REQ-F-034")
 def test_migration_is_idempotent(settings: Settings):
     """REQ-F-034: повторний запуск застосунку не руйнує наявну базу."""
-
     database = Database(settings.database_path)
     first = database.migrate()
     second = database.migrate()
@@ -47,7 +45,6 @@ def test_migration_is_idempotent(settings: Settings):
 
 def test_application_start_is_written_to_action_log(settings: Settings):
     """Усі дії системи потрапляють у журнал app.log."""
-
     create_app(settings)
 
     content = (settings.log_dir / "app.log").read_text(encoding="utf-8")
@@ -57,7 +54,6 @@ def test_application_start_is_written_to_action_log(settings: Settings):
 @pytest.mark.requirement("REQ-NF-008")
 def test_runtime_error_is_written_to_error_log_with_date_and_text(settings: Settings):
     """REQ-NF-008: помилки виконання пишуться з датою, часом і текстом."""
-
     configure_logging(settings.log_dir)
     log_event("request.failed", level=logging.ERROR, message="база даних недоступна")
 
@@ -71,7 +67,6 @@ def test_runtime_error_is_written_to_error_log_with_date_and_text(settings: Sett
 @pytest.mark.requirement("REQ-NF-008")
 def test_error_log_does_not_collect_ordinary_actions(settings: Settings):
     """REQ-NF-008: у журналі помилок немає звичайних дій."""
-
     configure_logging(settings.log_dir)
     log_event("purchase.created", purchase="22222222-0000-4000-8000-000000000001")
 
@@ -82,7 +77,6 @@ def test_error_log_does_not_collect_ordinary_actions(settings: Settings):
 @pytest.mark.requirement("REQ-NF-005")
 def test_test_run_journal_records_date_and_counts(settings: Settings):
     """REQ-NF-005: запис прогону містить дату й рядок «усього N, успішних M, неуспішних K»."""
-
     path = append_test_run(
         log_dir=settings.log_dir,
         total=3,
@@ -101,7 +95,6 @@ def test_test_run_journal_records_date_and_counts(settings: Settings):
 @pytest.mark.requirement("REQ-NF-005")
 def test_test_run_journal_keeps_previous_records(settings: Settings):
     """REQ-NF-005: журнал накопичує прогони, а не перезаписує останній."""
-
     append_test_run(settings.log_dir, 1, 1, 0, 0.1, "перший прогін")
     path = append_test_run(settings.log_dir, 2, 2, 0, 0.2, "другий прогін")
 
@@ -113,7 +106,6 @@ def test_test_run_journal_keeps_previous_records(settings: Settings):
 @pytest.mark.requirement("REQ-F-019")
 def test_error_body_matches_contract_error_schema():
     """REQ-F-019: єдина модель помилки зі spec/api/openapi.yaml."""
-
     body = error_body(
         code="VALIDATION_FAILED",
         message="Ціна має бути більшою за нуль.",

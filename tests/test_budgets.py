@@ -65,7 +65,6 @@ def spend(client, profile_id, category_id, amount, day=None, name="Покупк�
 @pytest.mark.requirement("REQ-A-001")
 def test_budget_is_set_for_a_category(client, profile_id, category_id):
     """REQ-A-001: бюджет 3000,00 грн на категорію «Продукти»."""
-
     response = set_budget(client, profile_id, category_id, "3000.00")
 
     payload = assert_response_matches_contract(response, BUDGETS, "post", 201)
@@ -81,7 +80,6 @@ def test_budget_is_set_for_a_category(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-A-001")
 def test_set_budget_appears_in_the_list(client, profile_id, category_id):
     """REQ-A-001: встановлений бюджет видно в переліку бюджетів профілю."""
-
     created = set_budget(client, profile_id, category_id).json()
 
     payload = budgets_of(client, profile_id, month=OCTOBER)
@@ -93,7 +91,6 @@ def test_set_budget_appears_in_the_list(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-A-001")
 def test_created_budget_response_carries_location_header(client, profile_id, category_id):
     """Контракт: відповідь 201 містить заголовок Location."""
-
     response = set_budget(client, profile_id, category_id)
 
     assert response.headers["Location"].endswith(response.json()["id"])
@@ -103,7 +100,6 @@ def test_created_budget_response_carries_location_header(client, profile_id, cat
 @pytest.mark.parametrize("limit", ["0.00", "-100.00"])
 def test_budget_must_be_greater_than_zero(client, profile_id, category_id, limit):
     """REQ-A-002: бюджет 0,00 або -100,00 відхиляється, запис не створюється."""
-
     response = set_budget(client, profile_id, category_id, limit)
 
     assert_error(response, 422, "VALIDATION_FAILED", requirement="REQ-A-002", field="limit")
@@ -113,7 +109,6 @@ def test_budget_must_be_greater_than_zero(client, profile_id, category_id, limit
 @pytest.mark.requirement("REQ-A-002")
 def test_budget_without_kopiikas_is_rejected(client, profile_id, category_id):
     """REQ-A-002: сума задається у тому ж форматі, що й ціна — з двома знаками."""
-
     response = set_budget(client, profile_id, category_id, "3000")
 
     assert_error(response, 422, "VALIDATION_FAILED", field="limit")
@@ -122,7 +117,6 @@ def test_budget_without_kopiikas_is_rejected(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-A-003")
 def test_category_cannot_have_two_budgets(client, profile_id, category_id):
     """REQ-A-003: повторне встановлення відхиляється, наявний бюджет не змінюється."""
-
     set_budget(client, profile_id, category_id, "3000.00")
 
     response = set_budget(client, profile_id, category_id, "500.00")
@@ -134,7 +128,6 @@ def test_category_cannot_have_two_budgets(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-A-001")
 def test_budget_for_unknown_category_is_rejected(client, profile_id):
     """Бюджет встановлюється лише для наявної категорії профілю."""
-
     response = set_budget(client, profile_id, UNKNOWN_ID)
 
     assert_error(response, 404, "CATEGORY_NOT_FOUND")
@@ -146,7 +139,6 @@ def test_budget_for_unknown_category_is_rejected(client, profile_id):
 @pytest.mark.requirement("REQ-A-004")
 def test_budget_shows_spending_and_remainder_for_the_month(client, profile_id, category_id):
     """REQ-A-004: бюджет 3000,00 і витрати 1200,00 дають залишок 1800,00."""
-
     set_budget(client, profile_id, category_id, "3000.00")
     spend(client, profile_id, category_id, "1200.00", day="2026-10-05")
 
@@ -160,7 +152,6 @@ def test_budget_shows_spending_and_remainder_for_the_month(client, profile_id, c
 @pytest.mark.requirement("REQ-A-005")
 def test_exceeded_budget_is_marked_and_reports_the_excess(client, profile_id, category_id):
     """REQ-A-005: бюджет 1000,00 і витрати 1250,00 — перевищення 250,00."""
-
     set_budget(client, profile_id, category_id, "1000.00")
     spend(client, profile_id, category_id, "1250.00", day="2026-10-05")
 
@@ -174,7 +165,6 @@ def test_exceeded_budget_is_marked_and_reports_the_excess(client, profile_id, ca
 @pytest.mark.requirement("REQ-A-005")
 def test_spending_of_another_month_does_not_affect_the_budget(client, profile_id, category_id):
     """REQ-A-005: покупка 01.11 не впливає на показники за жовтень."""
-
     set_budget(client, profile_id, category_id, "1000.00")
     spend(client, profile_id, category_id, "900.00", day="2026-11-01")
 
@@ -185,11 +175,8 @@ def test_spending_of_another_month_does_not_affect_the_budget(client, profile_id
 
 
 @pytest.mark.requirement("REQ-A-004")
-def test_spending_of_another_category_does_not_affect_the_budget(
-    client, profile_id, category_id
-):
+def test_spending_of_another_category_does_not_affect_the_budget(client, profile_id, category_id):
     """REQ-A-004: бюджет рахує витрати лише своєї категорії."""
-
     set_budget(client, profile_id, category_id, "1000.00")
     other = next(
         item["id"]
@@ -206,7 +193,6 @@ def test_spending_of_another_category_does_not_affect_the_budget(
 @pytest.mark.requirement("REQ-A-004")
 def test_budget_month_defaults_to_the_current_one(client, profile_id, category_id):
     """Контракт: без параметра `month` береться поточний місяць."""
-
     set_budget(client, profile_id, category_id, "1000.00")
     spend(client, profile_id, category_id, "150.00")
 
@@ -218,7 +204,6 @@ def test_budget_month_defaults_to_the_current_one(client, profile_id, category_i
 @pytest.mark.requirement("REQ-A-004")
 def test_budget_list_rejects_an_unparsable_month(client, profile_id):
     """Контракт: некоректний параметр запиту — 400."""
-
     response = client.get(f"/profiles/{profile_id}/budgets", params={"month": "жовтень"})
 
     assert_error(response, 400, "INVALID_PERIOD", field="month")
@@ -230,7 +215,6 @@ def test_budget_list_rejects_an_unparsable_month(client, profile_id):
 @pytest.mark.requirement("REQ-A-006")
 def test_budget_amount_can_be_changed(client, profile_id, category_id):
     """REQ-A-006: після зміни з 3000,00 на 2000,00 залишок перераховано."""
-
     created = set_budget(client, profile_id, category_id, "3000.00").json()
     # Витрата за поточний місяць: відповідь на зміну бюджету показує
     # показники саме за нього, бо операція `updateBudget` не має параметра
@@ -249,7 +233,6 @@ def test_budget_amount_can_be_changed(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-A-006")
 def test_changed_budget_must_also_be_greater_than_zero(client, profile_id, category_id):
     """REQ-A-006: правила REQ-A-002 діють і при зміні."""
-
     created = set_budget(client, profile_id, category_id).json()
 
     response = client.patch(
@@ -262,7 +245,6 @@ def test_changed_budget_must_also_be_greater_than_zero(client, profile_id, categ
 @pytest.mark.requirement("REQ-A-007")
 def test_budget_is_deleted_and_purchases_stay(client, profile_id, category_id):
     """REQ-A-007: бюджет зникає з переліку, покупки категорії лишаються."""
-
     created = set_budget(client, profile_id, category_id).json()
     spend(client, profile_id, category_id, "120.00", day="2026-10-05")
 
@@ -276,7 +258,6 @@ def test_budget_is_deleted_and_purchases_stay(client, profile_id, category_id):
 @pytest.mark.requirement("REQ-A-007")
 def test_unknown_budget_is_reported_as_not_found(client, profile_id):
     """Звернення до неіснуючого бюджету відхиляється за контрактом."""
-
     response = client.delete(f"/profiles/{profile_id}/budgets/{UNKNOWN_ID}")
 
     assert_error(response, 404, "BUDGET_NOT_FOUND")
@@ -288,10 +269,7 @@ def test_unknown_budget_is_reported_as_not_found(client, profile_id):
 @pytest.mark.requirement("REQ-A-008")
 def test_deleting_a_category_deletes_its_budget(client, profile_id):
     """REQ-A-008: разом із категорією зникає і її бюджет."""
-
-    category = client.post(
-        f"/profiles/{profile_id}/categories", json={"name": "Ресторани"}
-    ).json()
+    category = client.post(f"/profiles/{profile_id}/categories", json={"name": "Ресторани"}).json()
     set_budget(client, profile_id, category["id"], "800.00")
     spend(client, profile_id, category["id"], "100.00", day="2026-10-05")
 
@@ -303,7 +281,6 @@ def test_deleting_a_category_deletes_its_budget(client, profile_id):
 @pytest.mark.requirement("REQ-A-009")
 def test_budgets_of_one_profile_are_invisible_in_another(client, profile_id, category_id):
     """REQ-A-009: бюджет профілю «Ілля» не видно в профілі «Гість»."""
-
     created = set_budget(client, profile_id, category_id).json()
     guest = client.post("/profiles", json={"name": "Гість"}).json()["id"]
 
@@ -316,7 +293,6 @@ def test_budgets_of_one_profile_are_invisible_in_another(client, profile_id, cat
 @pytest.mark.requirement("REQ-A-009")
 def test_budgets_of_unknown_profile_are_reported_as_not_found(client):
     """REQ-A-009: ізоляція діє і на рівні профілю."""
-
     response = client.get(f"/profiles/{UNKNOWN_ID}/budgets")
 
     assert_error(response, 404, "PROFILE_NOT_FOUND")
@@ -325,7 +301,6 @@ def test_budgets_of_unknown_profile_are_reported_as_not_found(client):
 @pytest.mark.requirement("REQ-A-001")
 def test_setting_a_budget_is_written_to_the_action_log(client, profile_id, category_id, settings):
     """Усі дії в системі потрапляють у журнал."""
-
     created = set_budget(client, profile_id, category_id).json()
 
     log = (settings.log_dir / "app.log").read_text(encoding="utf-8")
